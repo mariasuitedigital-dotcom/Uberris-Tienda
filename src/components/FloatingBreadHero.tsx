@@ -74,16 +74,16 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
           </motion.p>
         </div>
 
-        {/* Right Column: Stunning Interactive Floating Composition (Hidden on very small screens, compact on mobile) */}
-        <div className="hidden sm:flex lg:col-span-5 h-[200px] sm:h-[400px] relative items-center justify-center z-10">
+        {/* Right Column: Interactive Floating Composition (Visible & optimized for mobile and desktop) */}
+        <div className="flex lg:col-span-5 h-[280px] sm:h-[360px] md:h-[420px] w-full relative items-center justify-center z-10 mt-2 sm:mt-0">
           
           {/* Subtle Golden/Green Aura Circle behind everything */}
-          <div className="absolute w-64 h-64 rounded-full bg-radial from-[#60b64d]/20 to-transparent blur-3xl pointer-events-none" />
+          <div className="absolute w-48 sm:w-64 h-48 sm:h-64 rounded-full bg-radial from-[#60b64d]/25 to-transparent blur-3xl pointer-events-none" />
 
           {/* 1. Primary Layer - Pan Chapla Artesanal (Grand Masterpiece Bread) */}
           <motion.div
             animate={{
-              y: [-12, 12],
+              y: [-10, 10],
               rotate: [-1, 2]
             }}
             transition={{
@@ -101,25 +101,26 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
               }
             }}
             whileHover={{ scale: 1.05, zIndex: 30 }}
-            className="absolute z-20 w-52 h-52 sm:w-60 sm:h-60 rounded-full cursor-grab active:cursor-grabbing shadow-2xl overflow-hidden border-2 border-[#60b64d]/40 group"
+            className="absolute z-20 w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-full cursor-grab active:cursor-grabbing shadow-2xl overflow-hidden border-2 border-[#60b64d]/50 group"
           >
             <img
               src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800"
               alt="Pan Chapla Artesanal Tradicional"
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
-            {/* Elegant text caption overlay on hover */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-3 text-white">
-              <Wheat className="w-6 h-6 text-[#60b64d] mb-1.5" />
-              <p className="font-serif-craft font-bold text-sm">Pan Chapla</p>
-              <p className="text-[10px] text-slate-300">Con masa madre y anís serrano</p>
+            {/* Elegant text caption overlay on hover / tap */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-2 sm:p-3 text-white">
+              <Wheat className="w-5 h-5 sm:w-6 sm:h-6 text-[#60b64d] mb-1" />
+              <p className="font-serif-craft font-bold text-xs sm:text-sm">Pan Chapla</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-300">Con masa madre y anís</p>
             </div>
           </motion.div>
 
           {/* 2. Secondary Layer - Queso Paria Maduro (Firme y Cremoso) */}
           <motion.div
             animate={{
-              y: [10, -10],
+              y: [8, -8],
               rotate: [3, -2]
             }}
             transition={{
@@ -137,17 +138,18 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
               }
             }}
             whileHover={{ scale: 1.05, zIndex: 30 }}
-            className="absolute -left-4 sm:-left-8 top-12 z-10 w-32 h-32 sm:w-36 sm:h-36 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-amber-500/30 group"
+            className="absolute -left-1 sm:-left-4 md:-left-6 top-6 sm:top-10 z-10 w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-amber-500/40 group"
           >
             <img
               src="https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600"
               alt="Queso Paria Artesanal Maduro"
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
             {/* Elegant overlay */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-2 text-white">
-              <p className="font-serif-craft font-bold text-xs">Queso Paria</p>
-              <p className="text-[9px] text-slate-300">100% Leche de Ordeño</p>
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-1.5 sm:p-2 text-white">
+              <p className="font-serif-craft font-bold text-[11px] sm:text-xs">Queso Paria</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-300">100% Leche Andina</p>
             </div>
           </motion.div>
 
@@ -155,7 +157,7 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
           <motion.div
             animate={{
               y: [-6, 6],
-              x: [-4, 4],
+              x: [-3, 3],
               rotate: [-4, 4]
             }}
             transition={{
@@ -179,71 +181,72 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
               }
             }}
             whileHover={{ scale: 1.05, zIndex: 30 }}
-            className="absolute -right-2 sm:-right-6 bottom-14 z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-emerald-500/30 group"
+            className="absolute -right-1 sm:-right-3 md:-right-6 bottom-6 sm:bottom-10 md:bottom-12 z-10 w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-emerald-500/40 group"
           >
             <img
               src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600"
               alt="Miel Pura de Monte Andino"
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-2 text-white">
-              <p className="font-serif-craft font-bold text-xs">Miel Silvestre</p>
-              <p className="text-[9px] text-slate-300">Floración Andina</p>
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center text-center p-1.5 sm:p-2 text-white">
+              <p className="font-serif-craft font-bold text-[11px] sm:text-xs">Miel Pura</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-300">Valle Abancay</p>
             </div>
           </motion.div>
 
-          {/* 4. Tiny Floating Ingredients (The "Dusting & Crumbs" Effect from the Burger Reference) */}
+          {/* 4. Tiny Floating Ingredients (Dusting & Sparkles Effect) */}
           
-          {/* Anise Seeds (Semillas de Anís) - Sparkle/Leaf representing andean seeds */}
+          {/* Anise Seeds / Sparkles */}
           <motion.div
             animate={{
-              y: [-15, 15],
-              x: [10, -10],
+              y: [-10, 10],
+              x: [6, -6],
               rotate: [0, 360]
             }}
             transition={{ duration: 7, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-            className="absolute top-8 right-16 z-0 text-amber-500 opacity-60"
+            className="absolute top-4 right-6 sm:top-8 sm:right-12 z-0 text-amber-400 opacity-75"
           >
-            <Sparkles className="w-5 h-5 animate-pulse" />
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
           </motion.div>
 
           {/* Golden Wheat Floating Element */}
           <motion.div
             animate={{
-              y: [12, -12],
-              x: [-10, 10],
+              y: [8, -8],
+              x: [-6, 6],
               rotate: [-15, 15]
             }}
             transition={{ duration: 5.5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-            className="absolute bottom-8 left-16 z-0 text-[#60b64d] opacity-50"
+            className="absolute bottom-4 left-4 sm:bottom-8 sm:left-12 z-0 text-[#60b64d] opacity-60"
           >
-            <Wheat className="w-7 h-7" />
+            <Wheat className="w-5 h-5 sm:w-7 sm:h-7" />
           </motion.div>
 
-          {/* Golden dust / flour sparkles */}
+          {/* Golden dust / sparkles */}
           <motion.div
             animate={{
               scale: [0.8, 1.2, 0.8],
-              opacity: [0.3, 0.7, 0.3],
-              y: [0, -10, 0]
+              opacity: [0.3, 0.8, 0.3],
+              y: [0, -8, 0]
             }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute top-1/2 left-4 w-2 h-2 rounded-full bg-amber-400 z-0"
+            className="absolute top-1/2 left-2 sm:left-4 w-2 h-2 rounded-full bg-amber-400 z-0"
           />
           <motion.div
             animate={{
               scale: [1.2, 0.7, 1.2],
-              opacity: [0.4, 0.8, 0.4],
-              y: [0, 8, 0]
+              opacity: [0.4, 0.9, 0.4],
+              y: [0, 6, 0]
             }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            className="absolute bottom-1/3 right-4 w-3 h-3 rounded-full bg-[#60b64d] z-0"
+            className="absolute bottom-1/3 right-2 sm:right-4 w-2.5 h-2.5 rounded-full bg-[#60b64d] z-0"
           />
           <motion.div
             animate={{
               scale: [0.6, 1.1, 0.6],
-              opacity: [0.2, 0.6, 0.2],
-              x: [0, 6, 0]
+              opacity: [0.2, 0.7, 0.2],
+              x: [0, 4, 0]
             }}
             transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
             className="absolute top-1/4 right-1/4 w-1.5 h-1.5 rounded-full bg-white z-0"
