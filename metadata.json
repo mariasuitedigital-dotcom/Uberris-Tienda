@@ -1,0 +1,6 @@
+{
+  "name": "Uberris — Sabores Artesanales",
+  "description": "Catálogo e-commerce e incubadora de pedidos para panadería artesanal y productos andinos del valle de Apurímac con Hoja de Horno y Control de Insumos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
