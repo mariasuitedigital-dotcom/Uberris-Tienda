@@ -394,78 +394,77 @@ export const AdminPanel: React.FC<Props> = ({
     );
   };
 
+  const compressImageFile = (file: File, maxDim: number, quality: number, callback: (compressedUrl: string) => void) => {
+    if (!file.type.startsWith('image/')) {
+      onShowToast('Formato no válido', 'Por favor selecciona un archivo de imagen (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          callback(compressedDataUrl);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingSettings((prev) => ({ ...prev, logoUrl: dataUrl }));
-        onShowToast('Logo cargado', 'Se cargó la imagen del logo. Presiona "Guardar y Sincronizar Cambios" para aplicarlo.', 'success');
-      }
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, 800, 0.90, (compressedUrl) => {
+      setEditingSettings((prev) => ({ ...prev, logoUrl: compressedUrl }));
+      onShowToast('Logo cargado', 'Se cargó y optimizó la imagen del logo. Presiona "Guardar y Sincronizar Cambios" para aplicarlo.', 'success');
+    });
   };
 
   const handleHeroImage1FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingSettings((prev) => ({ ...prev, heroImage1: dataUrl }));
-        onShowToast('Imagen Central Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
-      }
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, 1000, 0.88, (compressedUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage1: compressedUrl }));
+      onShowToast('Imagen Central Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    });
   };
 
   const handleHeroImage2FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingSettings((prev) => ({ ...prev, heroImage2: dataUrl }));
-        onShowToast('Imagen Superior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
-      }
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, 900, 0.88, (compressedUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage2: compressedUrl }));
+      onShowToast('Imagen Superior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    });
   };
 
   const handleHeroImage3FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingSettings((prev) => ({ ...prev, heroImage3: dataUrl }));
-        onShowToast('Imagen Inferior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
-      }
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, 900, 0.88, (compressedUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage3: compressedUrl }));
+      onShowToast('Imagen Inferior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    });
   };
 
   const handleProductImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3357,14 +3356,41 @@ export const AdminPanel: React.FC<Props> = ({
 
                   {/* Hero Images Management Section (The 3 Circular Images) */}
                   <div className="md:col-span-2 pt-4 border-t border-dashed border-emerald-500/20 space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div>
                         <h4 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
                           📸 Imágenes Circulares Flotantes del Banner (Hero)
                         </h4>
                         <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                          Cambia las 3 imágenes circulares que flotan en el banner principal "Sabores de Origen".
+                          Sube desde tu dispositivo o pega enlaces de las 3 imágenes circulares del banner principal.
                         </p>
+                      </div>
+
+                      {isSupabaseConnected() && (
+                        <button
+                          type="button"
+                          onClick={handleCopyMigrationSql}
+                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
+                            copiedMigrationSql
+                              ? 'bg-emerald-500 text-white border-emerald-500'
+                              : isDarkMode
+                              ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/40'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs'
+                          }`}
+                        >
+                          {copiedMigrationSql ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
+                          <span>{copiedMigrationSql ? '¡SQL Copiado!' : 'Copiar Script SQL Supabase'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Notice box */}
+                    <div className={`p-3 rounded-xl border text-[11px] leading-relaxed flex items-start gap-2.5 ${
+                      isDarkMode ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-200' : 'bg-amber-50/80 border-amber-200 text-slate-800'
+                    }`}>
+                      <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>¿Cómo se guardan las imágenes?</strong> Tus cambios se guardan <u>de inmediato en tu tienda local</u>. Si usas Supabase y la nube no las guarda todavía, es porque tu tabla <code className="px-1 py-0.5 rounded bg-black/10 font-mono text-[10px]">store_settings</code> en Supabase necesita las 3 columnas de las imágenes. Haz clic arriba en <strong>"Copiar Script SQL Supabase"</strong> y pégalo en el <strong>SQL Editor</strong> de Supabase.
                       </div>
                     </div>
 
