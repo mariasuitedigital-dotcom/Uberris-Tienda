@@ -4,6 +4,7 @@ import { ProductCard } from './components/ProductCard';
 import { ProductQuickViewModal } from './components/ProductQuickViewModal';
 import { CartDrawer } from './components/CartDrawer';
 import { AdminPanel } from './components/AdminPanel';
+import { Footer } from './components/Footer';
 import { NotificationToast, ToastMessage } from './components/NotificationToast';
 import { FloatingBreadHero } from './components/FloatingBreadHero';
 import { HorizontalProductCard } from './components/HorizontalProductCard';
@@ -11,6 +12,21 @@ import { CategoriesGrid } from './components/CategoriesGrid';
 import { SectionHeader } from './components/SectionHeader';
 import { BottomNav } from './components/BottomNav';
 import { AdminAuthModal } from './components/AdminAuthModal';
+import { SupabaseSyncModal } from './components/SupabaseSyncModal';
+import {
+  dbFetchProducts,
+  dbFetchOrders,
+  dbFetchStoreSettings,
+  dbUpsertStoreSettings,
+  dbCreateOrder,
+  dbUpdateOrderStatus,
+  dbDeleteOrder,
+  dbUpsertProduct,
+  dbDeleteProduct,
+  subscribeToSupabaseOrders,
+  subscribeToSupabaseProducts,
+  isSupabaseConnected
+} from './lib/supabase';
 import {
   Product,
   CartItem,
@@ -18,13 +34,15 @@ import {
   OrderStatus,
   RawSupply,
   InventoryMovement,
-  ProductCategory
+  ProductCategory,
+  StoreSettings
 } from './types';
 import {
   INITIAL_PRODUCTS,
   INITIAL_ORDERS,
   INITIAL_SUPPLIES,
-  INITIAL_MOVEMENTS
+  INITIAL_MOVEMENTS,
+  DEFAULT_STORE_SETTINGS
 } from './data/initialData';
 import {
   Wheat,
@@ -54,6 +72,7 @@ export default function App() {
   // 2. View Mode State ('catalog' | 'admin')
   const [currentView, setCurrentView] = useState<'catalog' | 'admin'>('catalog');
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
   // 3. Catalog & Search State
   const [products, setProducts] = useState<Product[]>(() => {
@@ -64,6 +83,61 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('uberris_products', JSON.stringify(products));
   }, [products]);
+
+  // Store Settings State (Company Phone, Social Media TikTok/Facebook/Instagram, Business Hours, Address)
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
+    const saved = localStorage.getItem('uberris_settings');
+    return saved ? JSON.parse(saved) : DEFAULT_STORE_SETTINGS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('uberris_settings', JSON.stringify(storeSettings));
+  }, [storeSettings]);
+
+  // Load from Supabase on mount and listen to realtime updates
+  const fetchSupabaseData = async () => {
+    if (!isSupabaseConnected()) return;
+    try {
+      const [dbProds, dbOrds, dbSettings] = await Promise.all([
+        dbFetchProducts(),
+        dbFetchOrders(),
+        dbFetchStoreSettings()
+      ]);
+      if (dbProds && dbProds.length > 0) {
+        setProducts(dbProds);
+      }
+      if (dbOrds && dbOrds.length > 0) {
+        setOrders(dbOrds);
+      }
+      if (dbSettings) {
+        setStoreSettings(dbSettings);
+      }
+    } catch (err) {
+      console.warn('Supabase fetch notice:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupabaseData();
+
+    if (isSupabaseConnected()) {
+      const unsubOrders = subscribeToSupabaseOrders(() => {
+        dbFetchOrders().then((ords) => {
+          if (ords) setOrders(ords);
+        });
+      });
+      const unsubProducts = subscribeToSupabaseProducts(() => {
+        dbFetchProducts().then((prods) => {
+          if (prods) setProducts(prods);
+        });
+      });
+
+      return () => {
+        unsubOrders();
+        unsubProducts();
+      };
+    }
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'Todos'>('Todos');
@@ -188,11 +262,18 @@ export default function App() {
   };
 
   // --- SUBMIT ORDER & UPDATE PRODUCT INVENTORY ---
-  const handleSubmitOrder = (newOrder: Order) => {
-    // 1. Save new order
+  const handleSubmitOrder = async (newOrder: Order) => {
+    // 1. Save new order in local state
     setOrders((prev) => [newOrder, ...prev]);
 
-    // 2. Automatically deduct finished product stock for products with physical stock (con_stock)
+    // 2. Persist to Supabase if connected
+    if (isSupabaseConnected()) {
+      dbCreateOrder(newOrder).catch((err) =>
+        console.warn('Could not sync order to Supabase:', err)
+      );
+    }
+
+    // 3. Automatically deduct finished product stock for products with physical stock (con_stock)
     setProducts((prevProducts) => {
       return prevProducts.map((p) => {
         const orderItem = newOrder.items.find((item) => item.productId === p.id);
@@ -219,11 +300,25 @@ export default function App() {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );
+
+    if (isSupabaseConnected()) {
+      dbUpdateOrderStatus(orderId, status).catch((err) =>
+        console.warn('Could not update order status in Supabase:', err)
+      );
+    }
+
     showToast('Estado Actualizado', `El pedido #${orderId} pasó a ${status.toUpperCase()}.`, 'info');
   };
 
   const handleDeleteOrder = (orderId: string) => {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+    if (isSupabaseConnected()) {
+      dbDeleteOrder(orderId).catch((err) =>
+        console.warn('Could not delete order in Supabase:', err)
+      );
+    }
+
     showToast('Pedido Eliminado', undefined, 'info');
   };
 
@@ -235,10 +330,23 @@ export default function App() {
       }
       return [updatedProduct, ...prev];
     });
+
+    if (isSupabaseConnected()) {
+      dbUpsertProduct(updatedProduct).catch((err) =>
+        console.warn('Could not save product to Supabase:', err)
+      );
+    }
   };
 
   const handleDeleteProduct = (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
+
+    if (isSupabaseConnected()) {
+      dbDeleteProduct(productId).catch((err) =>
+        console.warn('Could not delete product from Supabase:', err)
+      );
+    }
+
     showToast('Producto Eliminado', 'El producto ha sido retirado del inventario.', 'info');
   };
 
@@ -268,6 +376,19 @@ export default function App() {
         return s;
       })
     );
+  };
+
+  // Handle Store Settings Save (Social Media, Phone, Hours, Address)
+  const handleSaveStoreSettings = async (newSettings: StoreSettings) => {
+    setStoreSettings(newSettings);
+    localStorage.setItem('uberris_settings', JSON.stringify(newSettings));
+    if (isSupabaseConnected()) {
+      try {
+        await dbUpsertStoreSettings(newSettings);
+      } catch (err) {
+        console.error('Error saving settings to Supabase:', err);
+      }
+    }
   };
 
   // Filtered Products for Catalog
@@ -306,6 +427,7 @@ export default function App() {
         onViewChange={setCurrentView}
         pendingOrdersCount={pendingOrdersCount}
         onOpenAdminAuth={() => setIsAdminAuthOpen(true)}
+        announcementBanner={storeSettings.announcementBanner}
       />
 
       {/* Main Content Area */}
@@ -429,15 +551,29 @@ export default function App() {
           orders={orders}
           supplies={supplies}
           movements={movements}
+          settings={storeSettings}
+          onSaveSettings={handleSaveStoreSettings}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onDeleteOrder={handleDeleteOrder}
           onSaveProduct={handleSaveProduct}
           onDeleteProduct={handleDeleteProduct}
           onAddSupplyStock={handleAddSupplyStock}
           onShowToast={showToast}
+          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           isDarkMode={isDarkMode}
         />
       )}
+
+      {/* Supabase Cloud Database Sync & Migration Modal */}
+      <SupabaseSyncModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        isDarkMode={isDarkMode}
+        products={products}
+        orders={orders}
+        onRefreshData={fetchSupabaseData}
+        onShowToast={showToast}
+      />
 
       {/* Quick View Modal */}
       <ProductQuickViewModal
@@ -491,38 +627,18 @@ export default function App() {
         isDarkMode={isDarkMode}
       />
 
-      {/* Footer */}
-      <footer className={`mt-16 border-t py-8 px-4 transition-colors ${
-        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-slate-400' : 'bg-[#f7f9f6] border-slate-200 text-slate-600'
-      }`}>
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-center md:text-left">
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-2">
-              <span className="font-sans font-black text-[#39C139] text-lg tracking-tighter">Uberris</span>
-              <span>• Apurímac, Perú</span>
-            </div>
-            <p>© {new Date().getFullYear()} Uberris. Todos los derechos reservados.</p>
-          </div>
-          
-          <button
-            onClick={() => {
-              if (currentView === 'catalog') {
-                setIsAdminAuthOpen(true);
-              } else {
-                setCurrentView('catalog');
-              }
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              isDarkMode 
-                ? 'bg-[#1c3326] text-emerald-400 hover:bg-[#60b64d] hover:text-white' 
-                : 'bg-slate-200 text-slate-700 hover:bg-[#60b64d] hover:text-white'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            {currentView === 'catalog' ? 'Acceso Administrativo' : 'Volver al Catálogo'}
-          </button>
-        </div>
-      </footer>
+      {/* Rich Footer with Phone, TikTok, Facebook, Instagram, Address & Hours */}
+      <Footer
+        settings={storeSettings}
+        isDarkMode={isDarkMode}
+        onOpenAdmin={() => {
+          if (currentView === 'catalog') {
+            setIsAdminAuthOpen(true);
+          } else {
+            setCurrentView('catalog');
+          }
+        }}
+      />
     </div>
   );
 }

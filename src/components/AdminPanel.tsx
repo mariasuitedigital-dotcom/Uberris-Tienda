@@ -33,8 +33,16 @@ import {
   X,
   ExternalLink,
   FileSpreadsheet,
-  Download
+  Download,
+  Database,
+  Globe,
+  Share2,
+  Mail,
+  Settings,
+  Save,
+  CheckCircle
 } from 'lucide-react';
+import { isSupabaseConnected, dbUpsertStoreSettings } from '../lib/supabase';
 import {
   Product,
   Order,
@@ -42,7 +50,8 @@ import {
   RawSupply,
   InventoryMovement,
   ProductionConsolidatedItem,
-  ProductionBreakdownClient
+  ProductionBreakdownClient,
+  StoreSettings
 } from '../types';
 
 interface Props {
@@ -50,12 +59,15 @@ interface Props {
   orders: Order[];
   supplies?: RawSupply[];
   movements?: InventoryMovement[];
+  settings?: StoreSettings;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
   onDeleteOrder: (orderId: string) => void;
   onSaveProduct: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
   onAddSupplyStock?: (supplyId: string, addedAmount: number) => void;
+  onSaveSettings?: (settings: StoreSettings) => void;
   onShowToast: (title: string, description?: string, type?: 'success' | 'error' | 'info') => void;
+  onOpenSupabaseModal?: () => void;
   isDarkMode: boolean;
 }
 
@@ -64,16 +76,50 @@ export const AdminPanel: React.FC<Props> = ({
   orders,
   supplies = [],
   movements = [],
+  settings,
   onUpdateOrderStatus,
   onDeleteOrder,
   onSaveProduct,
   onDeleteProduct,
   onAddSupplyStock,
+  onSaveSettings,
   onShowToast,
+  onOpenSupabaseModal,
   isDarkMode,
 }) => {
-  // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario & Catálogo
-  const [activeMainTab, setActiveMainTab] = useState<'produccion' | 'pedidos' | 'inventario'>('produccion');
+  // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario, 4. Redes & Footer
+  const [activeMainTab, setActiveMainTab] = useState<'produccion' | 'pedidos' | 'inventario' | 'redes'>('produccion');
+
+  // Local settings state for the form
+  const [editingSettings, setEditingSettings] = useState<StoreSettings>(() => {
+    return (
+      settings || {
+        id: 'main_store',
+        businessName: 'Uberris del Valle',
+        tagline: 'Panadería Tradicional & Sabores de Apurímac',
+        phone: '+51 983 746 281',
+        whatsappPhone: '51983746281',
+        email: 'pedidos@uberrisdelvalle.com',
+        addressText: 'Av. Arenas 450, Abancay - Apurímac, Perú',
+        businessHours: 'Lunes a Sábado: 6:00 AM - 8:00 PM | Domingos: 6:00 AM - 1:30 PM',
+        tiktokUrl: 'https://www.tiktok.com/@uberrisdelvalle',
+        facebookUrl: 'https://www.facebook.com/uberrisdelvalle',
+        instagramUrl: 'https://www.instagram.com/uberrisdelvalle',
+        logoUrl: '',
+        heroBannerUrl: '',
+        yapeQrImage: '',
+        plinQrImage: '',
+        announcementBanner: '🌱 Hornadas frescas diarias con trigo andino de Apurímac. Envíos directos a Abancay, Andahuaylas, Cusco y Lima.',
+      }
+    );
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  React.useEffect(() => {
+    if (settings) {
+      setEditingSettings(settings);
+    }
+  }, [settings]);
 
   // Filters for orders
   const [filterCity, setFilterCity] = useState<string>('Todas');
@@ -299,6 +345,38 @@ export const AdminPanel: React.FC<Props> = ({
   const handleConfirmDeleteProduct = (productId: string) => {
     onDeleteProduct?.(productId);
     setDeleteConfirmProductId(null);
+  };
+
+  const handleSaveStoreSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      if (onSaveSettings) {
+        onSaveSettings(editingSettings);
+      }
+      if (isSupabaseConnected()) {
+        const success = await dbUpsertStoreSettings(editingSettings);
+        if (!success) {
+          throw new Error('No se pudo guardar la configuración en Supabase');
+        }
+        onShowToast(
+          'Configuración Guardada en Supabase',
+          'Los datos de redes sociales y pie de página se sincronizaron en la nube.',
+          'success'
+        );
+      } else {
+        onShowToast(
+          'Configuración Guardada Localmente',
+          'Conecta Supabase para sincronizar con todos los dispositivos en vivo.',
+          'info'
+        );
+      }
+    } catch (err: any) {
+      console.error('Error saving store settings:', err);
+      onShowToast('Error al Guardar', err.message || 'No se pudo guardar la configuración.', 'error');
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const toggleCompleteProduction = (productId: string) => {
@@ -658,6 +736,24 @@ export const AdminPanel: React.FC<Props> = ({
 
             {/* Top Quick Actions */}
             <div className="flex items-center gap-1.5 shrink-0 no-print">
+              {onOpenSupabaseModal && (
+                <button
+                  onClick={onOpenSupabaseModal}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
+                    isSupabaseConnected()
+                      ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50'
+                      : isDarkMode
+                      ? 'bg-[#08100c] border-[#1c3326] text-amber-400 hover:text-amber-300'
+                      : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100'
+                  }`}
+                  title={isSupabaseConnected() ? 'Base de datos Supabase conectada' : 'Configurar Base de Datos Supabase'}
+                >
+                  <Database className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden xs:inline">Supabase</span>
+                  <span className={`w-2 h-2 rounded-full ${isSupabaseConnected() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                </button>
+              )}
+
               <button
                 onClick={handleDownloadExcel}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95"
@@ -756,6 +852,21 @@ export const AdminPanel: React.FC<Props> = ({
                   {outOfStockOrLowCount}
                 </span>
               )}
+            </button>
+
+            {/* Tab 4: Redes Sociales & Pie de Página */}
+            <button
+              onClick={() => setActiveMainTab('redes')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+                activeMainTab === 'redes'
+                  ? 'bg-[#60b64d] text-white shadow-sm'
+                  : isDarkMode
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>4. Redes Sociales & Pie de Página</span>
             </button>
 
           </div>
@@ -2107,6 +2218,367 @@ export const AdminPanel: React.FC<Props> = ({
           </div>
         )}
 
+        {/* ======================================================== */}
+        {/* TAB 4: REDES SOCIALES & CONFIGURACIÓN PIE DE PÁGINA     */}
+        {/* ======================================================== */}
+        {activeMainTab === 'redes' && (
+          <div className="space-y-6">
+            
+            {/* Header description */}
+            <div className={`p-4 sm:p-5 rounded-2xl border ${
+              isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                    <h2 className="font-serif-craft text-lg sm:text-xl font-bold">
+                      Redes Sociales & Pie de Página
+                    </h2>
+                  </div>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Administra el número telefónico de la empresa, enlaces de TikTok, Facebook, Instagram, dirección y horarios.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                    isSupabaseConnected()
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                      : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${isSupabaseConnected() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                    {isSupabaseConnected() ? 'Sincronización en la Nube Activa' : 'Modo Local (Supabase no conectado)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveStoreSettings} className="space-y-6">
+              
+              {/* Section 1: Redes Sociales */}
+              <div className={`p-4 sm:p-6 rounded-2xl border ${
+                isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-500/15">
+                  <Globe className="w-5 h-5 text-[#60b64d]" />
+                  <h3 className="font-serif-craft text-base sm:text-lg font-bold">
+                    1. Enlaces a Redes Sociales Oficiales
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  
+                  {/* TikTok */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center justify-between ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-md bg-black text-white flex items-center justify-center text-[11px] font-black">TT</span>
+                        TikTok URL
+                      </span>
+                      {editingSettings.tiktokUrl && (
+                        <a
+                          href={editingSettings.tiktokUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-0.5"
+                        >
+                          Probar <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://www.tiktok.com/@uberrisdelvalle"
+                      value={editingSettings.tiktokUrl || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, tiktokUrl: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Ej: https://www.tiktok.com/@tu_cuenta
+                    </p>
+                  </div>
+
+                  {/* Facebook */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center justify-between ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center text-[11px] font-black">FB</span>
+                        Facebook URL
+                      </span>
+                      {editingSettings.facebookUrl && (
+                        <a
+                          href={editingSettings.facebookUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-0.5"
+                        >
+                          Probar <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://www.facebook.com/uberrisdelvalle"
+                      value={editingSettings.facebookUrl || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, facebookUrl: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Ej: https://www.facebook.com/tu_pagina
+                    </p>
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center justify-between ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-md bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center text-[11px] font-black">IG</span>
+                        Instagram URL
+                      </span>
+                      {editingSettings.instagramUrl && (
+                        <a
+                          href={editingSettings.instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-0.5"
+                        >
+                          Probar <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://www.instagram.com/uberrisdelvalle"
+                      value={editingSettings.instagramUrl || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, instagramUrl: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Ej: https://www.instagram.com/tu_perfil
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Section 2: Datos de Contacto y Panadería */}
+              <div className={`p-4 sm:p-6 rounded-2xl border ${
+                isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-500/15">
+                  <Phone className="w-5 h-5 text-emerald-500" />
+                  <h3 className="font-serif-craft text-base sm:text-lg font-bold">
+                    2. Teléfono & Contacto de la Empresa
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                      Teléfono de la Empresa (Llamadas / Atención)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+51 983 746 281"
+                      value={editingSettings.phone || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, phone: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Se muestra en el pie de página con acceso directo para llamada.
+                    </p>
+                  </div>
+
+                  {/* WhatsApp */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center justify-between ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <span className="flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                        WhatsApp de Pedidos (Sólo dígitos)
+                      </span>
+                      {editingSettings.whatsappPhone && (
+                        <a
+                          href={`https://wa.me/${editingSettings.whatsappPhone}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-0.5"
+                        >
+                          Abrir WhatsApp <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="51983746281"
+                      value={editingSettings.whatsappPhone || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, whatsappPhone: e.target.value.replace(/[^0-9]/g, '') })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                      Código de país + número (ej. 51983746281 para Perú).
+                    </p>
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                      Correo Electrónico Oficial
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="pedidos@uberrisdelvalle.com"
+                      value={editingSettings.email || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, email: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                      Dirección Física de la Panadería
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Av. Arenas 450, Abancay - Apurímac, Perú"
+                      value={editingSettings.addressText || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, addressText: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Business Hours */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className={`text-xs font-bold flex items-center gap-1.5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      Horario de Atención y Despacho de Hornadas
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Lunes a Sábado: 6:00 AM - 8:00 PM | Domingos: 6:00 AM - 1:30 PM"
+                      value={editingSettings.businessHours || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, businessHours: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Section 3: Branding & Textos */}
+              <div className={`p-4 sm:p-6 rounded-2xl border ${
+                isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-500/15">
+                  <Store className="w-5 h-5 text-amber-400" />
+                  <h3 className="font-serif-craft text-base sm:text-lg font-bold">
+                    3. Nombre del Negocio & Anuncios
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Business Name */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      Nombre de la Empresa
+                    </label>
+                    <input
+                      type="text"
+                      value={editingSettings.businessName || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, businessName: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Tagline */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      Slogan / Subtítulo
+                    </label>
+                    <input
+                      type="text"
+                      value={editingSettings.tagline || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, tagline: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Announcement Banner */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      Cinta de Anuncio Superior en la Tienda
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada."
+                      value={editingSettings.announcementBanner || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, announcementBanner: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Submit / Save Button Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#60b64d]/10 border border-[#60b64d]/30">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-[#60b64d]" />
+                  <div>
+                    <span className="text-xs font-bold block">¿Listo para aplicar los cambios?</span>
+                    <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Se actualizará el pie de página de inmediato y se sincronizará con la base de datos Supabase.
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingSettings ? 'Guardando...' : 'Guardar y Sincronizar Cambios'}</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        )}
+
       </main>
 
       {/* Modal Confirmar Eliminación de Producto */}
@@ -2388,19 +2860,58 @@ export const AdminPanel: React.FC<Props> = ({
                 />
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label className={`font-bold block mb-1 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  URL de Imagen
-                </label>
+              {/* Image URL & Postimages Helper */}
+              <div className={`p-3 rounded-xl border ${
+                isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-300'
+              }`}>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <label className={`font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    URL de Imagen del Producto
+                  </label>
+                  <a
+                    href="https://postimages.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-md transition-colors"
+                  >
+                    <span>📸 Subir a Postimages</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
                 <input
                   type="text"
+                  placeholder="https://i.postimg.cc/xxxx/mi-producto.jpg"
                   value={editingProduct.image || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  className={`w-full p-2.5 rounded-xl border focus:outline-none focus:border-[#60b64d] ${
-                    isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                  className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
                   }`}
                 />
+
+                <p className={`text-[10.5px] mt-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  💡 <strong>Tip Postimages:</strong> Al subir tu foto a postimages.org, copia el <span className="text-emerald-500 font-semibold">"Enlace directo"</span> (ej: <code>https://i.postimg.cc/.../foto.jpg</code>).
+                </p>
+
+                {/* Live Preview of Product Image */}
+                {editingProduct.image && (
+                  <div className="mt-2.5 flex items-center gap-3 p-2 rounded-lg bg-black/20 border border-slate-500/10">
+                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center">
+                      <img
+                        src={editingProduct.image}
+                        alt="Vista previa"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div className="text-[11px] overflow-hidden">
+                      <span className="font-bold text-emerald-400 block">✓ Vista previa de imagen</span>
+                      <span className="text-slate-400 truncate block max-w-xs">{editingProduct.image}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

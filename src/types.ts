@@ -92,9 +92,41 @@ export interface InventoryMovement {
   id: string;
   supplyId: string;
   supplyName: string;
-  type: 'venta_automatica' | 'ingreso_compra' | 'ajuste_manual';
+  type: 'venta_automatica' | 'ingreso_compra' | 'ajuste_manual' | 'merma' | 'horneada';
   amount: number; // Negative for deduction, positive for addition
   unit: string;
   date: string;
   referenceOrder?: string;
+}
+
+export interface StoreSettings {
+  id: string;
+  businessName: string;
+  tagline: string;
+  phone: string;
+  whatsappPhone: string;
+  email: string;
+  addressText: string;
+  businessHours: string;
+  tiktokUrl: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  logoUrl?: string;
+  heroBannerUrl?: string;
+  yapeQrImage?: string;
+  plinQrImage?: string;
+  announcementBanner: string;
+  updatedAt?: string;
+}
+
+export interface ProductionBatch {
+  id: string;
+  productId: string;
+  productName: string;
+  quantityPackages: number;
+  totalUnits: number;
+  status: 'planificado' | 'amasando' | 'en_horno' | 'terminado';
+  scheduledDate: string;
+  notes?: string;
+  createdAt?: string;
 }

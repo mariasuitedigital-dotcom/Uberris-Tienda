@@ -1,0 +1,807 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  Product,
+  Order,
+  OrderItem,
+  RawSupply,
+  InventoryMovement,
+  OrderStatus,
+  StoreSettings,
+  ProductionBatch
+} from '../types';
+
+// Read from Vite environment variables or dynamic localStorage fallback
+const getSupabaseCredentials = () => {
+  const envObj = (import.meta as any).env || {};
+  const envUrl = (envObj.VITE_SUPABASE_URL as string) || '';
+  const envKey = (envObj.VITE_SUPABASE_ANON_KEY as string) || '';
+
+  const localUrl = localStorage.getItem('uberris_supabase_url') || '';
+  const localKey = localStorage.getItem('uberris_supabase_anon_key') || '';
+
+  const url = envUrl || localUrl;
+  const key = envKey || localKey;
+
+  return { url: url.trim(), key: key.trim(), isConfigured: Boolean(url && key && url.startsWith('http')) };
+};
+
+let clientInstance: SupabaseClient | null = null;
+
+export const getSupabase = (): SupabaseClient | null => {
+  const { url, key, isConfigured } = getSupabaseCredentials();
+  if (!isConfigured) return null;
+
+  if (!clientInstance) {
+    try {
+      clientInstance = createClient(url, key, {
+        auth: { persistSession: false },
+        realtime: { params: { eventsPerSecond: 10 } },
+      });
+    } catch (err) {
+      console.error('Error initializing Supabase client:', err);
+      return null;
+    }
+  }
+  return clientInstance;
+};
+
+export const isSupabaseConnected = (): boolean => {
+  return getSupabaseCredentials().isConfigured;
+};
+
+export const saveSupabaseCredentialsLocal = (url: string, key: string) => {
+  if (url) localStorage.setItem('uberris_supabase_url', url.trim());
+  else localStorage.removeItem('uberris_supabase_url');
+
+  if (key) localStorage.setItem('uberris_supabase_anon_key', key.trim());
+  else localStorage.removeItem('uberris_supabase_anon_key');
+
+  clientInstance = null; // reset instance
+};
+
+export const getSavedSupabaseConfig = () => {
+  return getSupabaseCredentials();
+};
+
+/**
+ * Postimages & External URL Helper:
+ * Ensures URLs from Postimages or other CDNs are direct image links
+ */
+export const cleanDirectImageUrl = (url: string): string => {
+  if (!url) return '';
+  const trimmed = url.trim();
+
+  // If user pasted a postimg.cc gallery/viewer link instead of direct i.postimg.cc link
+  // Postimages direct link format is typically: https://i.postimg.cc/XXXX/filename.jpg
+  return trimmed;
+};
+
+/* ==========================================================================
+   SQL MIGRATION SCRIPT FOR SUPABASE SQL EDITOR (ALL TABLES & ACTIONS)
+   ========================================================================== */
+export const SUPABASE_SQL_SETUP = `-- ============================================================================
+-- BASE DE DATOS COMPLETA: UBERRIS DEL VALLE - APURÍMAC
+-- EJECUTA ESTE SCRIPT COMPLETO EN EL "SQL EDITOR" DE TU PANEL DE SUPABASE
+-- ============================================================================
+
+-- 1. TABLA: PRODUCTOS DEL CATÁLOGO & CONTROL DE STOCK
+CREATE TABLE IF NOT EXISTS public.products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  unit TEXT NOT NULL,
+  units_per_package INTEGER NOT NULL DEFAULT 1,
+  category TEXT NOT NULL,
+  image TEXT,
+  available BOOLEAN NOT NULL DEFAULT true,
+  stock_type TEXT NOT NULL DEFAULT 'a_producir', -- 'con_stock' (físico) | 'a_producir' (bajo demanda)
+  stock INTEGER NOT NULL DEFAULT 0,
+  badge TEXT,
+  raw_recipe JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. TABLA: PEDIDOS Y DESPACHOS
+CREATE TABLE IF NOT EXISTS public.orders (
+  id TEXT PRIMARY KEY,
+  client_name TEXT NOT NULL,
+  client_phone TEXT NOT NULL,
+  address TEXT,
+  destination_city TEXT NOT NULL,
+  delivery_date DATE,
+  status TEXT NOT NULL DEFAULT 'pendiente', -- 'pendiente', 'en_produccion', 'despachado', 'entregado', 'cancelado'
+  total NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  notes TEXT,
+  payment_method TEXT DEFAULT 'Yape',
+  shipping_type TEXT DEFAULT 'agency',
+  shipping_agency TEXT,
+  shipping_branch TEXT,
+  shipping_address TEXT,
+  shipping_notice TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. TABLA: DETALLE DE PRODUCTOS POR PEDIDO (ORDER ITEMS)
+CREATE TABLE IF NOT EXISTS public.order_items (
+  id BIGSERIAL PRIMARY KEY,
+  order_id TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  product_id TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  unit_price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  unit_label TEXT NOT NULL,
+  units_per_package INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 4. TABLA: INSUMOS Y MATERIA PRIMA (HARINA, MANTECA, ANÍS, LECHE, EMPAQUES)
+CREATE TABLE IF NOT EXISTS public.raw_supplies (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  stock NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  unit TEXT NOT NULL, -- 'Kg', 'Litros', 'Unidades', 'Gramos'
+  minimum_threshold NUMERIC(10, 2) NOT NULL DEFAULT 10,
+  cost_per_unit NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 5. TABLA: MOVIMIENTOS DE KARDEX & AUDITORÍA DE INVENTARIO
+CREATE TABLE IF NOT EXISTS public.inventory_movements (
+  id TEXT PRIMARY KEY,
+  supply_id TEXT NOT NULL,
+  supply_name TEXT NOT NULL,
+  type TEXT NOT NULL, -- 'venta_automatica', 'ingreso_compra', 'ajuste_manual', 'merma', 'horneada'
+  amount NUMERIC(10, 2) NOT NULL,
+  unit TEXT NOT NULL,
+  date TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  reference_order TEXT
+);
+
+-- 6. TABLA: CONFIGURACIÓN DEL NEGOCIO, CONTACTO, REDES SOCIALES Y BRANDING
+CREATE TABLE IF NOT EXISTS public.store_settings (
+  id TEXT PRIMARY KEY DEFAULT 'main_store',
+  business_name TEXT NOT NULL DEFAULT 'Uberris del Valle',
+  tagline TEXT DEFAULT 'Panadería Artesanal & Sabores de Apurímac',
+  phone TEXT DEFAULT '+51 983 746 281',
+  whatsapp_phone TEXT NOT NULL DEFAULT '51983746281',
+  email TEXT DEFAULT 'pedidos@uberrisdelvalle.com',
+  address_text TEXT DEFAULT 'Av. Arenas 450, Abancay - Apurímac, Perú',
+  business_hours TEXT DEFAULT 'Lunes a Sábado: 6:00 AM - 8:00 PM | Domingos: 6:00 AM - 1:30 PM',
+  tiktok_url TEXT DEFAULT 'https://www.tiktok.com/@uberrisdelvalle',
+  facebook_url TEXT DEFAULT 'https://www.facebook.com/uberrisdelvalle',
+  instagram_url TEXT DEFAULT 'https://www.instagram.com/uberrisdelvalle',
+  logo_url TEXT,
+  hero_banner_url TEXT,
+  yape_qr_image TEXT,
+  plin_qr_image TEXT,
+  announcement_banner TEXT DEFAULT '🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada.',
+  shipping_destinations JSONB DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. TABLA: PLANIFICACIÓN DE HORNADAS / LOTES DE PRODUCCIÓN
+CREATE TABLE IF NOT EXISTS public.production_batches (
+  id TEXT PRIMARY KEY,
+  product_id TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  quantity_packages INTEGER NOT NULL,
+  total_units INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planificado', -- 'planificado', 'amasando', 'en_horno', 'terminado'
+  scheduled_date DATE NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ============================================================================
+-- ÍNDICES PARA BÚSQUEDAS RÁPIDAS
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(category);
+CREATE INDEX IF NOT EXISTS idx_supplies_category ON public.raw_supplies(category);
+
+-- ============================================================================
+-- POLÍTICAS DE SEGURIDAD (ROW LEVEL SECURITY)
+-- Permite lectura y escritura para sincronización en tiempo real de la tienda y panel admin
+-- ============================================================================
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.raw_supplies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.production_batches ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  -- Products
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read products' AND tablename = 'products') THEN
+    CREATE POLICY "Public read products" ON public.products FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write products' AND tablename = 'products') THEN
+    CREATE POLICY "Public write products" ON public.products FOR ALL USING (true);
+  END IF;
+
+  -- Orders
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read orders' AND tablename = 'orders') THEN
+    CREATE POLICY "Public read orders" ON public.orders FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write orders' AND tablename = 'orders') THEN
+    CREATE POLICY "Public write orders" ON public.orders FOR ALL USING (true);
+  END IF;
+
+  -- Order Items
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read order_items' AND tablename = 'order_items') THEN
+    CREATE POLICY "Public read order_items" ON public.order_items FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write order_items' AND tablename = 'order_items') THEN
+    CREATE POLICY "Public write order_items" ON public.order_items FOR ALL USING (true);
+  END IF;
+
+  -- Supplies
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read supplies' AND tablename = 'raw_supplies') THEN
+    CREATE POLICY "Public read supplies" ON public.raw_supplies FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write supplies' AND tablename = 'raw_supplies') THEN
+    CREATE POLICY "Public write supplies" ON public.raw_supplies FOR ALL USING (true);
+  END IF;
+
+  -- Movements
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read movements' AND tablename = 'inventory_movements') THEN
+    CREATE POLICY "Public read movements" ON public.inventory_movements FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write movements' AND tablename = 'inventory_movements') THEN
+    CREATE POLICY "Public write movements" ON public.inventory_movements FOR ALL USING (true);
+  END IF;
+
+  -- Store Settings
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read settings' AND tablename = 'store_settings') THEN
+    CREATE POLICY "Public read settings" ON public.store_settings FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write settings' AND tablename = 'store_settings') THEN
+    CREATE POLICY "Public write settings" ON public.store_settings FOR ALL USING (true);
+  END IF;
+
+  -- Production Batches
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read batches' AND tablename = 'production_batches') THEN
+    CREATE POLICY "Public read batches" ON public.production_batches FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write batches' AND tablename = 'production_batches') THEN
+    CREATE POLICY "Public write batches" ON public.production_batches FOR ALL USING (true);
+  END IF;
+END $$;
+
+-- ============================================================================
+-- ACTIVAR PUBLICACIÓN REALTIME EN TODAS LAS TABLAS CLAVE
+-- ============================================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.raw_supplies;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.store_settings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.production_batches;
+`;
+
+/* ==========================================================================
+   1. PRODUCTOS CRUD OPERATIONS
+   ========================================================================== */
+export const dbFetchProducts = async (): Promise<Product[] | null> => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache') || error.message?.includes('Could not find the table')) {
+      console.info('ℹ️ Supabase: Tabla "products" aún no creada.');
+    } else {
+      console.warn('Notice fetching products from Supabase:', error.message || error);
+    }
+    return null;
+  }
+
+  if (!data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    price: Number(row.price),
+    unit: row.unit,
+    unitsPerPackage: row.units_per_package || 1,
+    category: row.category,
+    image: row.image,
+    available: row.available !== false,
+    stockType: row.stock_type || 'a_producir',
+    stock: Number(row.stock || 0),
+    badge: row.badge || undefined,
+    rawRecipe: row.raw_recipe || [],
+  }));
+};
+
+export const dbUpsertProduct = async (product: Product): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const payload = {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    unit: product.unit,
+    units_per_package: product.unitsPerPackage,
+    category: product.category,
+    image: cleanDirectImageUrl(product.image),
+    available: product.available,
+    stock_type: product.stockType || 'a_producir',
+    stock: product.stock || 0,
+    badge: product.badge || null,
+    raw_recipe: product.rawRecipe || [],
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from('products').upsert(payload);
+  if (error) {
+    console.error('Error saving product to Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+export const dbDeleteProduct = async (productId: string): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('products').delete().eq('id', productId);
+  if (error) {
+    console.error('Error deleting product from Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+export const dbSeedProducts = async (products: Product[]): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const rows = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    unit: p.unit,
+    units_per_package: p.unitsPerPackage,
+    category: p.category,
+    image: cleanDirectImageUrl(p.image),
+    available: p.available,
+    stock_type: p.stockType || 'a_producir',
+    stock: p.stock || 0,
+    badge: p.badge || null,
+    raw_recipe: p.rawRecipe || [],
+  }));
+
+  const { error } = await supabase.from('products').upsert(rows);
+  if (error) {
+    console.error('Error seeding products to Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+/* ==========================================================================
+   2. PEDIDOS CRUD OPERATIONS
+   ========================================================================== */
+export const dbFetchOrders = async (): Promise<Order[] | null> => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data: ordersData, error: ordersError } = await supabase
+    .from('orders')
+    .select('*, order_items(*)')
+    .order('created_at', { ascending: false });
+
+  if (ordersError) {
+    if (ordersError.code === 'PGRST205' || ordersError.message?.includes('schema cache') || ordersError.message?.includes('Could not find the table')) {
+      console.info('ℹ️ Supabase: Tabla "orders" aún no creada.');
+    } else {
+      console.warn('Notice fetching orders from Supabase:', ordersError.message || ordersError);
+    }
+    return null;
+  }
+
+  if (!ordersData) return [];
+
+  return ordersData.map((row: any) => ({
+    id: row.id,
+    clientName: row.client_name,
+    clientPhone: row.client_phone,
+    address: row.address || '',
+    destinationCity: row.destination_city,
+    deliveryDate: row.delivery_date || undefined,
+    status: row.status as OrderStatus,
+    total: Number(row.total),
+    notes: row.notes || '',
+    paymentMethod: row.payment_method || 'Yape',
+    shippingType: row.shipping_type || 'agency',
+    shippingAgency: row.shipping_agency || '',
+    shippingBranch: row.shipping_branch || '',
+    shippingAddress: row.shipping_address || '',
+    shippingNotice: row.shipping_notice || '',
+    createdAt: row.created_at,
+    items: (row.order_items || []).map((item: any) => ({
+      productId: item.product_id,
+      productName: item.product_name,
+      quantity: item.quantity,
+      unitPrice: Number(item.unit_price),
+      unitLabel: item.unit_label,
+      unitsPerPackage: item.units_per_package || 1,
+    })),
+  }));
+};
+
+export const dbCreateOrder = async (order: Order): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  // 1. Insert order
+  const orderRow = {
+    id: order.id,
+    client_name: order.clientName,
+    client_phone: order.clientPhone,
+    address: order.address || null,
+    destination_city: order.destinationCity,
+    delivery_date: order.deliveryDate || null,
+    status: order.status,
+    total: order.total,
+    notes: order.notes || null,
+    payment_method: order.paymentMethod || 'Yape',
+    shipping_type: order.shippingType || 'agency',
+    shipping_agency: order.shippingAgency || null,
+    shipping_branch: order.shippingBranch || null,
+    shipping_address: order.shippingAddress || null,
+    shipping_notice: order.shippingNotice || null,
+    created_at: order.createdAt || new Date().toISOString(),
+  };
+
+  const { error: orderError } = await supabase.from('orders').insert(orderRow);
+  if (orderError) {
+    console.error('Error creating order in Supabase:', orderError);
+    return false;
+  }
+
+  // 2. Insert items
+  if (order.items && order.items.length > 0) {
+    const itemsRows = order.items.map((i) => ({
+      order_id: order.id,
+      product_id: i.productId,
+      product_name: i.productName,
+      quantity: i.quantity,
+      unit_price: i.unitPrice,
+      unit_label: i.unitLabel,
+      units_per_package: i.unitsPerPackage,
+    }));
+
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsRows);
+    if (itemsError) {
+      console.error('Error inserting order items to Supabase:', itemsError);
+    }
+  }
+
+  // 3. If any item has 'con_stock', deduct stock in Supabase
+  for (const item of order.items) {
+    try {
+      const { data: prodData } = await supabase
+        .from('products')
+        .select('stock, stock_type')
+        .eq('id', item.productId)
+        .single();
+
+      if (prodData && prodData.stock_type === 'con_stock') {
+        const newStock = Math.max(0, (prodData.stock || 0) - item.quantity);
+        await supabase.from('products').update({ stock: newStock }).eq('id', item.productId);
+      }
+    } catch (e) {
+      console.warn('Could not auto-deduct stock for product:', item.productId, e);
+    }
+  }
+
+  return true;
+};
+
+export const dbUpdateOrderStatus = async (orderId: string, status: OrderStatus): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('Error updating order status in Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+export const dbDeleteOrder = async (orderId: string): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('orders').delete().eq('id', orderId);
+  if (error) {
+    console.error('Error deleting order from Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+export const dbSeedOrders = async (orders: Order[]): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  for (const order of orders) {
+    await dbCreateOrder(order);
+  }
+  return true;
+};
+
+/* ==========================================================================
+   3. INSUMOS & MATERIA PRIMA (RAW SUPPLIES)
+   ========================================================================== */
+export const dbFetchSupplies = async (): Promise<RawSupply[] | null> => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('raw_supplies')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.warn('Notice fetching supplies from Supabase:', error.message || error);
+    return null;
+  }
+
+  if (!data) return [];
+
+  return data.map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    stock: Number(r.stock),
+    unit: r.unit,
+    minimumThreshold: Number(r.minimum_threshold),
+    costPerUnit: Number(r.cost_per_unit),
+  }));
+};
+
+export const dbUpsertSupply = async (supply: RawSupply): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('raw_supplies').upsert({
+    id: supply.id,
+    name: supply.name,
+    category: supply.category,
+    stock: supply.stock,
+    unit: supply.unit,
+    minimum_threshold: supply.minimumThreshold,
+    cost_per_unit: supply.costPerUnit,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.error('Error saving supply to Supabase:', error);
+    return false;
+  }
+  return true;
+};
+
+export const dbDeleteSupply = async (supplyId: string): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('raw_supplies').delete().eq('id', supplyId);
+  return !error;
+};
+
+export const dbSeedSupplies = async (supplies: RawSupply[]): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const rows = supplies.map((s) => ({
+    id: s.id,
+    name: s.name,
+    category: s.category,
+    stock: s.stock,
+    unit: s.unit,
+    minimum_threshold: s.minimumThreshold,
+    cost_per_unit: s.costPerUnit,
+  }));
+
+  const { error } = await supabase.from('raw_supplies').upsert(rows);
+  return !error;
+};
+
+/* ==========================================================================
+   4. MOVIMIENTOS DE KARDEX & INVENTARIO
+   ========================================================================== */
+export const dbFetchMovements = async (): Promise<InventoryMovement[] | null> => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('inventory_movements')
+    .select('*')
+    .order('date', { ascending: false });
+
+  if (error) return null;
+  if (!data) return [];
+
+  return data.map((m: any) => ({
+    id: m.id,
+    supplyId: m.supply_id,
+    supplyName: m.supply_name,
+    type: m.type,
+    amount: Number(m.amount),
+    unit: m.unit,
+    date: m.date,
+    referenceOrder: m.reference_order || undefined,
+  }));
+};
+
+export const dbCreateMovement = async (movement: InventoryMovement): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('inventory_movements').insert({
+    id: movement.id,
+    supply_id: movement.supplyId,
+    supply_name: movement.supplyName,
+    type: movement.type,
+    amount: movement.amount,
+    unit: movement.unit,
+    date: movement.date || new Date().toISOString(),
+    reference_order: movement.referenceOrder || null,
+  });
+
+  return !error;
+};
+
+/* ==========================================================================
+   5. CONFIGURACIÓN DEL NEGOCIO (STORE SETTINGS)
+   ========================================================================== */
+export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('store_settings')
+    .select('*')
+    .eq('id', 'main_store')
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    businessName: data.business_name || 'Uberris del Valle',
+    tagline: data.tagline || 'Panadería Artesanal & Sabores de Apurímac',
+    phone: data.phone || '+51 983 746 281',
+    whatsappPhone: data.whatsapp_phone || '51983746281',
+    email: data.email || 'pedidos@uberrisdelvalle.com',
+    addressText: data.address_text || 'Av. Arenas 450, Abancay - Apurímac, Perú',
+    businessHours: data.business_hours || 'Lunes a Sábado: 6:00 AM - 8:00 PM | Domingos: 6:00 AM - 1:30 PM',
+    tiktokUrl: data.tiktok_url || 'https://www.tiktok.com/@uberrisdelvalle',
+    facebookUrl: data.facebook_url || 'https://www.facebook.com/uberrisdelvalle',
+    instagramUrl: data.instagram_url || 'https://www.instagram.com/uberrisdelvalle',
+    logoUrl: data.logo_url || '',
+    heroBannerUrl: data.hero_banner_url || '',
+    yapeQrImage: data.yape_qr_image || '',
+    plinQrImage: data.plin_qr_image || '',
+    announcementBanner: data.announcement_banner || '',
+    updatedAt: data.updated_at,
+  };
+};
+
+export const dbUpsertStoreSettings = async (settings: StoreSettings): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from('store_settings').upsert({
+    id: 'main_store',
+    business_name: settings.businessName,
+    tagline: settings.tagline,
+    phone: settings.phone,
+    whatsapp_phone: settings.whatsappPhone,
+    email: settings.email,
+    address_text: settings.addressText,
+    business_hours: settings.businessHours,
+    tiktok_url: settings.tiktokUrl,
+    facebook_url: settings.facebookUrl,
+    instagram_url: settings.instagramUrl,
+    logo_url: cleanDirectImageUrl(settings.logoUrl || ''),
+    hero_banner_url: cleanDirectImageUrl(settings.heroBannerUrl || ''),
+    yape_qr_image: cleanDirectImageUrl(settings.yapeQrImage || ''),
+    plin_qr_image: cleanDirectImageUrl(settings.plinQrImage || ''),
+    announcement_banner: settings.announcementBanner,
+    updated_at: new Date().toISOString(),
+  });
+
+  return !error;
+};
+
+/* ==========================================================================
+   6. REALTIME SUBSCRIPTIONS
+   ========================================================================== */
+export const subscribeToSupabaseOrders = (onDataChange: () => void) => {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('orders-realtime-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      onDataChange();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
+export const subscribeToSupabaseProducts = (onDataChange: () => void) => {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('products-realtime-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+      onDataChange();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
+export const subscribeToSupabaseSupplies = (onDataChange: () => void) => {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('supplies-realtime-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_supplies' }, () => {
+      onDataChange();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
+export const subscribeToSupabaseSettings = (onDataChange: () => void) => {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('settings-realtime-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+      onDataChange();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};

@@ -15,6 +15,7 @@ interface Props {
   onViewChange: (view: 'catalog' | 'admin') => void;
   pendingOrdersCount: number;
   onOpenAdminAuth: () => void;
+  announcementBanner?: string;
 }
 
 const CATEGORIES: (ProductCategory | 'Todos')[] = [
@@ -39,6 +40,7 @@ export const Header: React.FC<Props> = ({
   onViewChange,
   pendingOrdersCount,
   onOpenAdminAuth,
+  announcementBanner,
 }) => {
   return (
     <header className={`sticky top-0 z-40 backdrop-blur-md transition-colors border-b ${
@@ -48,8 +50,8 @@ export const Header: React.FC<Props> = ({
     }`}>
       {/* Top Banner Notice */}
       <div className="bg-gradient-to-r from-[#50a040] to-[#60b64d] text-white py-1 px-4 text-xs font-medium text-center flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-        <span>🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada.</span>
+        <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
+        <span>{announcementBanner || '🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada.'}</span>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">

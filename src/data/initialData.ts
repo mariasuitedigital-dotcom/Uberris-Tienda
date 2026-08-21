@@ -1,4 +1,4 @@
-import { Product, RawSupply, Order, InventoryMovement } from '../types';
+import { Product, RawSupply, Order, InventoryMovement, StoreSettings } from '../types';
 
 export const INITIAL_SUPPLIES: RawSupply[] = [
   {
@@ -374,3 +374,23 @@ export const INITIAL_MOVEMENTS: InventoryMovement[] = [
     referenceOrder: 'UBR-1024',
   }
 ];
+
+export const DEFAULT_STORE_SETTINGS: StoreSettings = {
+  id: 'main_store',
+  businessName: 'Uberris del Valle',
+  tagline: 'Panadería Tradicional & Sabores de Apurímac',
+  phone: '+51 983 746 281',
+  whatsappPhone: '51983746281',
+  email: 'pedidos@uberrisdelvalle.com',
+  addressText: 'Av. Arenas 450, Abancay - Apurímac, Perú',
+  businessHours: 'Lunes a Sábado: 6:00 AM - 8:00 PM | Domingos: 6:00 AM - 1:30 PM',
+  tiktokUrl: 'https://www.tiktok.com/@uberrisdelvalle',
+  facebookUrl: 'https://www.facebook.com/uberrisdelvalle',
+  instagramUrl: 'https://www.instagram.com/uberrisdelvalle',
+  logoUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80',
+  heroBannerUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=1200&auto=format&fit=crop&q=80',
+  yapeQrImage: '',
+  plinQrImage: '',
+  announcementBanner: '🌱 Hornadas frescas diarias con trigo andino de Apurímac. Envíos directos a Abancay, Andahuaylas, Cusco y Lima.',
+};
+
