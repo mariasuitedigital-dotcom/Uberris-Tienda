@@ -804,18 +804,36 @@ export const AdminPanel: React.FC<Props> = ({
 
   const handleSaveProductForm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProduct || !editingProduct.name) return;
-    
+    if (!editingProduct) return;
+
+    const trimmedName = (editingProduct.name || '').trim();
+    if (!trimmedName) {
+      onShowToast('Nombre Requerido', 'Por favor ingresa un nombre para el producto.', 'error');
+      return;
+    }
+
     // Auto-clean and resolve direct URL
     const cleanedImg = cleanDirectImageUrl(editingProduct.image || '');
     const productToSave: Product = {
       ...editingProduct,
-      image: cleanedImg || editingProduct.image || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800'
-    } as Product;
+      id: editingProduct.id || `PROD-${Date.now()}`,
+      name: trimmedName,
+      description: editingProduct.description || '',
+      price: Math.max(0, Number(editingProduct.price) || 0),
+      unit: editingProduct.unit || 'Paquete',
+      unitsPerPackage: Math.max(1, Number(editingProduct.unitsPerPackage) || 1),
+      category: editingProduct.category || 'Panadería',
+      image: cleanedImg || editingProduct.image || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
+      available: editingProduct.available !== false,
+      stockType: editingProduct.stockType || 'a_producir',
+      stock: editingProduct.stockType === 'con_stock' ? Math.max(0, Number(editingProduct.stock) || 0) : 0,
+      badge: editingProduct.badge || 'Artesanal',
+      rawRecipe: editingProduct.rawRecipe || [],
+    };
 
     onSaveProduct(productToSave);
     setIsProductModalOpen(false);
-    onShowToast('Producto Guardado', `"${productToSave.name}" guardado correctamente.`, 'success');
+    onShowToast('¡Producto Guardado!', `"${productToSave.name}" se actualizó correctamente en el catálogo.`, 'success');
   };
 
   return (

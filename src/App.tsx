@@ -107,7 +107,20 @@ export default function App() {
         dbFetchStoreSettings()
       ]);
       if (dbProds && dbProds.length > 0) {
-        setProducts(dbProds);
+        setProducts((prevLocal) => {
+          const map = new Map<string, Product>();
+          // 1. Put Supabase products
+          dbProds.forEach((p) => map.set(p.id, p));
+          // 2. Keep local products if not in Supabase yet (unsynced local creations)
+          prevLocal.forEach((lp) => {
+            if (!map.has(lp.id)) {
+              map.set(lp.id, lp);
+            }
+          });
+          const merged = Array.from(map.values());
+          localStorage.setItem('uberris_products', JSON.stringify(merged));
+          return merged;
+        });
       }
       if (dbOrds && dbOrds.length > 0) {
         setOrders(dbOrds);
@@ -131,7 +144,20 @@ export default function App() {
       });
       const unsubProducts = subscribeToSupabaseProducts(() => {
         dbFetchProducts().then((prods) => {
-          if (prods) setProducts(prods);
+          if (prods && prods.length > 0) {
+            setProducts((prevLocal) => {
+              const map = new Map<string, Product>();
+              prods.forEach((p) => map.set(p.id, p));
+              prevLocal.forEach((lp) => {
+                if (!map.has(lp.id)) {
+                  map.set(lp.id, lp);
+                }
+              });
+              const merged = Array.from(map.values());
+              localStorage.setItem('uberris_products', JSON.stringify(merged));
+              return merged;
+            });
+          }
         });
       });
 
@@ -360,29 +386,41 @@ export default function App() {
     showToast('Pedido Eliminado', undefined, 'info');
   };
 
-  const handleSaveProduct = (updatedProduct: Product) => {
+  const handleSaveProduct = async (updatedProduct: Product) => {
     setProducts((prev) => {
       const exists = prev.some((p) => p.id === updatedProduct.id);
-      if (exists) {
-        return prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
-      }
-      return [updatedProduct, ...prev];
+      const next = exists
+        ? prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+        : [updatedProduct, ...prev];
+      localStorage.setItem('uberris_products', JSON.stringify(next));
+      return next;
     });
 
     if (isSupabaseConnected()) {
-      dbUpsertProduct(updatedProduct).catch((err) =>
-        console.warn('Could not save product to Supabase:', err)
-      );
+      try {
+        const success = await dbUpsertProduct(updatedProduct);
+        if (!success) {
+          console.warn('Could not save product to Supabase, retained in local storage.');
+        }
+      } catch (err) {
+        console.warn('Could not save product to Supabase:', err);
+      }
     }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  const handleDeleteProduct = async (productId: string) => {
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id !== productId);
+      localStorage.setItem('uberris_products', JSON.stringify(next));
+      return next;
+    });
 
     if (isSupabaseConnected()) {
-      dbDeleteProduct(productId).catch((err) =>
-        console.warn('Could not delete product from Supabase:', err)
-      );
+      try {
+        await dbDeleteProduct(productId);
+      } catch (err) {
+        console.warn('Could not delete product from Supabase:', err);
+      }
     }
 
     showToast('Producto Eliminado', 'El producto ha sido retirado del inventario.', 'info');
