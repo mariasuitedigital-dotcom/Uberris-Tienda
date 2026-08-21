@@ -16,6 +16,8 @@ interface Props {
   pendingOrdersCount: number;
   onOpenAdminAuth: () => void;
   announcementBanner?: string;
+  logoUrl?: string;
+  businessName?: string;
 }
 
 const CATEGORIES: (ProductCategory | 'Todos')[] = [
@@ -41,6 +43,8 @@ export const Header: React.FC<Props> = ({
   pendingOrdersCount,
   onOpenAdminAuth,
   announcementBanner,
+  logoUrl,
+  businessName,
 }) => {
   return (
     <header className={`sticky top-0 z-40 backdrop-blur-md transition-colors border-b ${
@@ -70,16 +74,24 @@ export const Header: React.FC<Props> = ({
             }}
             className="flex items-center gap-3 cursor-pointer group shrink-0 select-none"
           >
-            <div className="flex items-center justify-center px-3 py-1 border-[2.5px] border-[#39C139] rounded-xl bg-white shadow-sm group-hover:scale-105 transition-transform">
-              <span className="font-sans text-[22px] font-black tracking-tighter text-[#39C139] flex items-baseline leading-none">
-                Uberr
-                <span className="relative inline-flex flex-col items-center justify-end" style={{ width: '0.28em' }}>
-                  <svg className="w-[11px] h-[11px] text-[#ff0000] absolute -top-[1px] fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                  <span className="text-[#39C139]">ı</span>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={businessName || 'Uberris del Valle'}
+                className="h-9 sm:h-10 w-auto max-w-[170px] object-contain rounded-xl group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <div className="flex items-center justify-center px-3 py-1 border-[2.5px] border-[#39C139] rounded-xl bg-white shadow-sm group-hover:scale-105 transition-transform">
+                <span className="font-sans text-[22px] font-black tracking-tighter text-[#39C139] flex items-baseline leading-none">
+                  Uberr
+                  <span className="relative inline-flex flex-col items-center justify-end" style={{ width: '0.28em' }}>
+                    <svg className="w-[11px] h-[11px] text-[#ff0000] absolute -top-[1px] fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span className="text-[#39C139]">ı</span>
+                  </span>
+                  s
                 </span>
-                s
-              </span>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Desktop Search Bar */}

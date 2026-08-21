@@ -100,9 +100,26 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Column 1: Brand & Bio */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#60b64d] text-white flex items-center justify-center shadow-md font-serif font-black text-lg">
-                {(settings.businessName || 'U').charAt(0).toUpperCase()}
-              </div>
+              {settings.logoUrl ? (
+                <img
+                  src={settings.logoUrl}
+                  alt={settings.businessName || 'Uberris del Valle'}
+                  className="h-10 sm:h-11 w-auto max-w-[170px] object-contain rounded-xl shadow-xs"
+                />
+              ) : (
+                <div className="flex items-center justify-center px-3 py-1.5 border-[2.5px] border-[#39C139] rounded-xl bg-white shadow-sm shrink-0">
+                  <span className="font-sans text-[22px] font-black tracking-tighter text-[#39C139] flex items-baseline leading-none">
+                    Uberr
+                    <span className="relative inline-flex flex-col items-center justify-end" style={{ width: '0.28em' }}>
+                      <svg className="w-[11px] h-[11px] text-[#ff0000] absolute -top-[1px] fill-current" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                      <span className="text-[#39C139]">ı</span>
+                    </span>
+                    s
+                  </span>
+                </div>
+              )}
               <div>
                 <h3 className="font-serif-craft font-black text-lg tracking-tight">
                   {settings.businessName || 'Uberris del Valle'}

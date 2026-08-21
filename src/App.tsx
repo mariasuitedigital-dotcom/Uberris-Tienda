@@ -466,6 +466,8 @@ export default function App() {
         pendingOrdersCount={pendingOrdersCount}
         onOpenAdminAuth={() => setIsAdminAuthOpen(true)}
         announcementBanner={storeSettings.announcementBanner}
+        logoUrl={storeSettings.logoUrl}
+        businessName={storeSettings.businessName}
       />
 
       {/* Main Content Area */}

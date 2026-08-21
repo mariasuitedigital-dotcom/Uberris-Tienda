@@ -42,7 +42,9 @@ import {
   Save,
   CheckCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import { isSupabaseConnected, dbUpsertStoreSettings, SUPABASE_SQL_FOOTER_MIGRATION } from '../lib/supabase';
 import {
@@ -370,6 +372,26 @@ export const AdminPanel: React.FC<Props> = ({
       `${product.name} ahora es "${newType === 'con_stock' ? 'Con Stock Físico' : 'A Producir (Bajo Demanda)'}"`,
       'info'
     );
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setEditingSettings((prev) => ({ ...prev, logoUrl: dataUrl }));
+        onShowToast('Logo cargado', 'Se cargó la imagen del logo. Presiona "Guardar y Sincronizar Cambios" para aplicarlo.', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleConfirmDeleteProduct = (productId: string) => {
@@ -2319,6 +2341,116 @@ export const AdminPanel: React.FC<Props> = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Logo de la Empresa (Cabecera & Footer) */}
+                  <div className={`p-4 rounded-xl border md:col-span-2 space-y-3 ${
+                    isDarkMode ? 'bg-[#08100c]/80 border-[#1c3326]' : 'bg-slate-50/90 border-slate-200'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-emerald-500" />
+                        <label className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                          Logo Oficial de la Tienda (Cabecera & Pie de Página)
+                        </label>
+                      </div>
+                      <span className="text-[11px] text-emerald-500 font-semibold">
+                        Se muestra en la barra superior y en el pie de página
+                      </span>
+                    </div>
+
+                    {/* Logo Preview and Actions */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-1">
+                      {/* Live visual preview box */}
+                      <div className={`p-3 rounded-xl border flex items-center justify-center min-w-[140px] h-[58px] ${
+                        isDarkMode ? 'bg-[#0f1d16] border-emerald-500/30' : 'bg-white border-slate-300 shadow-xs'
+                      }`}>
+                        {editingSettings.logoUrl ? (
+                          <img
+                            src={editingSettings.logoUrl}
+                            alt="Logo Vista Previa"
+                            className="max-h-10 max-w-[150px] object-contain rounded-lg"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center px-3 py-1 border-[2px] border-[#39C139] rounded-lg bg-white shadow-2xs">
+                            <span className="font-sans text-[18px] font-black tracking-tighter text-[#39C139] flex items-baseline leading-none">
+                              Uberr
+                              <span className="relative inline-flex flex-col items-center justify-end" style={{ width: '0.28em' }}>
+                                <svg className="w-[9px] h-[9px] text-[#ff0000] absolute -top-[1px] fill-current" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                                <span className="text-[#39C139]">ı</span>
+                              </span>
+                              s
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 w-full space-y-2">
+                        {/* URL input and helpers */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Pega la URL de la imagen del logo (https://...)"
+                            value={editingSettings.logoUrl || ''}
+                            onChange={(e) => setEditingSettings({ ...editingSettings, logoUrl: e.target.value })}
+                            className={`flex-1 p-2 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                              isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                            }`}
+                          />
+
+                          {/* Upload from file button */}
+                          <label className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all shadow-xs active:scale-95">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Subir Archivo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoFileUpload}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {/* Postimages Link */}
+                          <a
+                            href="https://postimages.org"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`p-2 rounded-xl border text-xs flex items-center gap-1 font-bold shrink-0 transition-colors ${
+                              isDarkMode
+                                ? 'bg-[#0f1d16] border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/50'
+                                : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                            }`}
+                            title="Subir a Postimages.org"
+                          >
+                            <span>Postimages</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+
+                        {/* Status / Reset text */}
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>
+                            {editingSettings.logoUrl
+                              ? '✓ Usando logo de imagen personalizada'
+                              : '✓ Usando logo oficial vectorial de Uberrıs'}
+                          </span>
+                          {editingSettings.logoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSettings({ ...editingSettings, logoUrl: undefined });
+                                onShowToast('Logo Restablecido', 'Se volvió al logo oficial de Uberrıs.', 'info');
+                              }}
+                              className="text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
+                            >
+                              Restablecer al logo original Uberrıs
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Business Name */}
                   <div className="space-y-1.5">
                     <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
