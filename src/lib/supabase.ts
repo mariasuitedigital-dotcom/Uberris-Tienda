@@ -79,6 +79,34 @@ export const cleanDirectImageUrl = (url: string): string => {
 /* ==========================================================================
    SQL MIGRATION SCRIPT FOR SUPABASE SQL EDITOR (ALL TABLES & ACTIONS)
    ========================================================================== */
+export const SUPABASE_SQL_FOOTER_MIGRATION = `-- ============================================================================
+-- ACTUALIZACIÓN RÁPIDA: NUEVAS COLUMNAS DE REDES, FOOTER Y CUENTAS DE PAGO
+-- Copia y pega esto en el "SQL Editor" de Supabase y presiona "RUN"
+-- ============================================================================
+
+ALTER TABLE IF EXISTS public.store_settings 
+  ADD COLUMN IF NOT EXISTS footer_bio TEXT DEFAULT 'Llevamos el sabor inconfundible del Pan Chapla tradicional, panes andinos y productos del valle apurimeño directo a tu mesa familiar.',
+  ADD COLUMN IF NOT EXISTS footer_shipping_info TEXT DEFAULT 'Despachamos por agencias de transporte confiables (Palomino, Shalom, Mariscal Cáceres, Molina) con empaque sellado para conservar la frescura.',
+  ADD COLUMN IF NOT EXISTS yape_number TEXT DEFAULT '983746281',
+  ADD COLUMN IF NOT EXISTS yape_name TEXT DEFAULT 'Uberris del Valle',
+  ADD COLUMN IF NOT EXISTS plin_number TEXT DEFAULT '983746281',
+  ADD COLUMN IF NOT EXISTS plin_name TEXT DEFAULT 'Uberris del Valle',
+  ADD COLUMN IF NOT EXISTS bank_account_bank TEXT DEFAULT 'BCP',
+  ADD COLUMN IF NOT EXISTS bank_account_number TEXT DEFAULT '191-12345678-0-12',
+  ADD COLUMN IF NOT EXISTS bank_account_cci TEXT DEFAULT '00219100123456780123',
+  ADD COLUMN IF NOT EXISTS bank_account_name TEXT DEFAULT 'Uberris del Valle EIRL',
+  ADD COLUMN IF NOT EXISTS show_tiktok BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_facebook BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_instagram BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_whatsapp BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_phone BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_address BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_hours BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_shipping_info BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true;
+`;
+
 export const SUPABASE_SQL_SETUP = `-- ============================================================================
 -- BASE DE DATOS COMPLETA: UBERRIS DEL VALLE - APURÍMAC
 -- EJECUTA ESTE SCRIPT COMPLETO EN EL "SQL EDITOR" DE TU PANEL DE SUPABASE
@@ -165,7 +193,9 @@ CREATE TABLE IF NOT EXISTS public.inventory_movements (
 CREATE TABLE IF NOT EXISTS public.store_settings (
   id TEXT PRIMARY KEY DEFAULT 'main_store',
   business_name TEXT NOT NULL DEFAULT 'Uberris del Valle',
-  tagline TEXT DEFAULT 'Panadería Artesanal & Sabores de Apurímac',
+  tagline TEXT DEFAULT 'Panadería & Delicias de Apurímac',
+  footer_bio TEXT DEFAULT 'Llevamos el sabor inconfundible del Pan Chapla tradicional, panes andinos y productos del valle apurimeño directo a tu mesa familiar.',
+  footer_shipping_info TEXT DEFAULT 'Despachamos por agencias de transporte confiables (Palomino, Shalom, Mariscal Cáceres, Molina) con empaque sellado para conservar la frescura.',
   phone TEXT DEFAULT '+51 983 746 281',
   whatsapp_phone TEXT NOT NULL DEFAULT '51983746281',
   email TEXT DEFAULT 'pedidos@uberrisdelvalle.com',
@@ -177,11 +207,52 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   logo_url TEXT,
   hero_banner_url TEXT,
   yape_qr_image TEXT,
+  yape_number TEXT DEFAULT '983746281',
+  yape_name TEXT DEFAULT 'Uberris del Valle',
   plin_qr_image TEXT,
+  plin_number TEXT DEFAULT '983746281',
+  plin_name TEXT DEFAULT 'Uberris del Valle',
+  bank_account_bank TEXT DEFAULT 'BCP',
+  bank_account_number TEXT DEFAULT '191-12345678-0-12',
+  bank_account_cci TEXT DEFAULT '00219100123456780123',
+  bank_account_name TEXT DEFAULT 'Uberris del Valle EIRL',
   announcement_banner TEXT DEFAULT '🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada.',
+  show_tiktok BOOLEAN DEFAULT true,
+  show_facebook BOOLEAN DEFAULT true,
+  show_instagram BOOLEAN DEFAULT true,
+  show_whatsapp BOOLEAN DEFAULT true,
+  show_phone BOOLEAN DEFAULT true,
+  show_email BOOLEAN DEFAULT true,
+  show_address BOOLEAN DEFAULT true,
+  show_hours BOOLEAN DEFAULT true,
+  show_shipping_info BOOLEAN DEFAULT true,
+  show_payment_badges BOOLEAN DEFAULT true,
   shipping_destinations JSONB DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- MIGRACIÓN / ACTUALIZACIÓN SI LA TABLA YA EXISTÍA PREVIAMENTE
+ALTER TABLE IF EXISTS public.store_settings 
+  ADD COLUMN IF NOT EXISTS footer_bio TEXT DEFAULT 'Llevamos el sabor inconfundible del Pan Chapla tradicional, panes andinos y productos del valle apurimeño directo a tu mesa familiar.',
+  ADD COLUMN IF NOT EXISTS footer_shipping_info TEXT DEFAULT 'Despachamos por agencias de transporte confiables (Palomino, Shalom, Mariscal Cáceres, Molina) con empaque sellado para conservar la frescura.',
+  ADD COLUMN IF NOT EXISTS yape_number TEXT DEFAULT '983746281',
+  ADD COLUMN IF NOT EXISTS yape_name TEXT DEFAULT 'Uberris del Valle',
+  ADD COLUMN IF NOT EXISTS plin_number TEXT DEFAULT '983746281',
+  ADD COLUMN IF NOT EXISTS plin_name TEXT DEFAULT 'Uberris del Valle',
+  ADD COLUMN IF NOT EXISTS bank_account_bank TEXT DEFAULT 'BCP',
+  ADD COLUMN IF NOT EXISTS bank_account_number TEXT DEFAULT '191-12345678-0-12',
+  ADD COLUMN IF NOT EXISTS bank_account_cci TEXT DEFAULT '00219100123456780123',
+  ADD COLUMN IF NOT EXISTS bank_account_name TEXT DEFAULT 'Uberris del Valle EIRL',
+  ADD COLUMN IF NOT EXISTS show_tiktok BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_facebook BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_instagram BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_whatsapp BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_phone BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_address BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_hours BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_shipping_info BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true;
 
 -- 7. TABLA: PLANIFICACIÓN DE HORNADAS / LOTES DE PRODUCCIÓN
 CREATE TABLE IF NOT EXISTS public.production_batches (
@@ -732,11 +803,21 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
   };
 };
 
-export const dbUpsertStoreSettings = async (settings: StoreSettings): Promise<boolean> => {
-  const supabase = getSupabase();
-  if (!supabase) return false;
+export const dbUpsertStoreSettings = async (
+  settings: StoreSettings
+): Promise<{ success: boolean; needsMigration?: boolean; error?: string }> => {
+  // Always save to localStorage as an instant guarantee so client and admin never lose data
+  try {
+    localStorage.setItem('uberris_store_settings', JSON.stringify(settings));
+  } catch (e) {
+    console.error('Error saving local store settings fallback:', e);
+  }
 
-  const { error } = await supabase.from('store_settings').upsert({
+  const supabase = getSupabase();
+  if (!supabase) return { success: true };
+
+  // Attempt 1: Full payload with all new columns
+  const fullPayload = {
     id: 'main_store',
     business_name: settings.businessName,
     tagline: settings.tagline,
@@ -774,9 +855,43 @@ export const dbUpsertStoreSettings = async (settings: StoreSettings): Promise<bo
     show_shipping_info: settings.showShippingInfo !== false,
     show_payment_badges: settings.showPaymentBadges !== false,
     updated_at: new Date().toISOString(),
-  });
+  };
 
-  return !error;
+  const { error: fullError } = await supabase.from('store_settings').upsert(fullPayload);
+  if (!fullError) {
+    return { success: true, needsMigration: false };
+  }
+
+  console.warn('Full store_settings upsert returned error (likely missing newly added columns in Postgres):', fullError.message);
+
+  // Attempt 2: Fallback payload using only the original base columns so saving never crashes or fails completely
+  const fallbackPayload = {
+    id: 'main_store',
+    business_name: settings.businessName,
+    tagline: settings.tagline,
+    phone: settings.phone,
+    whatsapp_phone: settings.whatsappPhone,
+    email: settings.email,
+    address_text: settings.addressText,
+    business_hours: settings.businessHours,
+    tiktok_url: settings.tiktokUrl,
+    facebook_url: settings.facebookUrl,
+    instagram_url: settings.instagramUrl,
+    logo_url: cleanDirectImageUrl(settings.logoUrl || ''),
+    hero_banner_url: cleanDirectImageUrl(settings.heroBannerUrl || ''),
+    yape_qr_image: cleanDirectImageUrl(settings.yapeQrImage || ''),
+    plin_qr_image: cleanDirectImageUrl(settings.plinQrImage || ''),
+    announcement_banner: settings.announcementBanner,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: fallbackError } = await supabase.from('store_settings').upsert(fallbackPayload);
+  if (!fallbackError) {
+    return { success: true, needsMigration: true, error: fullError.message };
+  }
+
+  // If table does not exist at all in Supabase yet, return error details but local data is still safe
+  return { success: false, needsMigration: true, error: fullError.message || fallbackError.message };
 };
 
 /* ==========================================================================

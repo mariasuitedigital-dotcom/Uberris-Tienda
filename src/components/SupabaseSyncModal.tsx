@@ -23,6 +23,7 @@ import {
   getSavedSupabaseConfig,
   saveSupabaseCredentialsLocal,
   SUPABASE_SQL_SETUP,
+  SUPABASE_SQL_FOOTER_MIGRATION,
   dbSeedProducts,
   dbSeedOrders,
   dbSeedSupplies,
@@ -55,6 +56,7 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
   const [urlInput, setUrlInput] = useState(config.url || '');
   const [keyInput, setKeyInput] = useState(config.key || '');
   const [copiedSql, setCopiedSql] = useState(false);
+  const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'sql' | 'postimages' | 'settings'>('status');
@@ -70,8 +72,15 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
   const handleCopySql = () => {
     navigator.clipboard.writeText(SUPABASE_SQL_SETUP);
     setCopiedSql(true);
-    onShowToast('Script SQL Copiado', 'Pégalo en el SQL Editor de tu panel de Supabase y dale a Run.', 'success');
+    onShowToast('Script SQL Completo Copiado', 'Pégalo en el SQL Editor de tu panel de Supabase y dale a Run.', 'success');
     setTimeout(() => setCopiedSql(false), 3000);
+  };
+
+  const handleCopyMigrationSql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_FOOTER_MIGRATION);
+    setCopiedMigrationSql(true);
+    onShowToast('Script SQL de Actualización Copiado', 'Pégalo en el SQL Editor de Supabase y dale a Run.', 'success');
+    setTimeout(() => setCopiedMigrationSql(false), 3000);
   };
 
   const handleSaveCredentials = async (e: React.FormEvent) => {
@@ -327,17 +336,27 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
           {/* TAB 2: SQL SCHEMA */}
           {activeTab === 'sql' && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <p className={`text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   Copia y pega este script en el <strong>SQL Editor</strong> de Supabase y pulsa <strong>Run</strong>:
                 </p>
-                <button
-                  onClick={handleCopySql}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0"
-                >
-                  {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedSql ? '¡Copiado!' : 'Copiar SQL Completo'}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={handleCopyMigrationSql}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
+                  >
+                    {copiedMigrationSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedMigrationSql ? '¡Copiado!' : 'Solo Columnas Nuevas (Alter)'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopySql}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
+                  >
+                    {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSql ? '¡Copiado!' : 'Copiar SQL Completo'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="relative">

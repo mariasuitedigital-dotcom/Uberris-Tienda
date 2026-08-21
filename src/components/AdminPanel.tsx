@@ -44,7 +44,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { isSupabaseConnected, dbUpsertStoreSettings } from '../lib/supabase';
+import { isSupabaseConnected, dbUpsertStoreSettings, SUPABASE_SQL_FOOTER_MIGRATION } from '../lib/supabase';
 import {
   Product,
   Order,
@@ -136,6 +136,14 @@ export const AdminPanel: React.FC<Props> = ({
     );
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
+
+  const handleCopyMigrationSql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_FOOTER_MIGRATION);
+    setCopiedMigrationSql(true);
+    onShowToast('Script de Migración Copiado', 'Pégalo en el SQL Editor de Supabase y dale a "RUN".', 'success');
+    setTimeout(() => setCopiedMigrationSql(false), 3000);
+  };
 
   React.useEffect(() => {
     if (settings) {
@@ -377,25 +385,38 @@ export const AdminPanel: React.FC<Props> = ({
         onSaveSettings(editingSettings);
       }
       if (isSupabaseConnected()) {
-        const success = await dbUpsertStoreSettings(editingSettings);
-        if (!success) {
-          throw new Error('No se pudo guardar la configuración en Supabase');
+        const result = await dbUpsertStoreSettings(editingSettings);
+        if (result.success) {
+          if (result.needsMigration) {
+            onShowToast(
+              '¡Guardado y Activo en la Tienda!',
+              'Los cambios ya están aplicados. Ejecuta el script SQL en Supabase para sincronizar todas las columnas nuevas en la nube.',
+              'success'
+            );
+          } else {
+            onShowToast(
+              '¡Configuración Guardada en Supabase!',
+              'Los datos de redes sociales, textos y pie de página se sincronizaron en la nube.',
+              'success'
+            );
+          }
+        } else {
+          onShowToast(
+            '¡Guardado en la Tienda!',
+            'Tus cambios ya están activos. Para sincronizarlos también en la nube, corre el script SQL en Supabase.',
+            'info'
+          );
         }
-        onShowToast(
-          'Configuración Guardada en Supabase',
-          'Los datos de redes sociales y pie de página se sincronizaron en la nube.',
-          'success'
-        );
       } else {
         onShowToast(
-          'Configuración Guardada Localmente',
-          'Conecta Supabase para sincronizar con todos los dispositivos en vivo.',
-          'info'
+          'Configuración Guardada',
+          'Los cambios de redes sociales y pie de página ya están activos en la tienda.',
+          'success'
         );
       }
     } catch (err: any) {
       console.error('Error saving store settings:', err);
-      onShowToast('Error al Guardar', err.message || 'No se pudo guardar la configuración.', 'error');
+      onShowToast('Guardado Local', 'Se guardaron los cambios en tu navegador.', 'info');
     } finally {
       setIsSavingSettings(false);
     }
@@ -2920,6 +2941,43 @@ export const AdminPanel: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Supabase SQL Migration Info Helper Box */}
+              {isSupabaseConnected() && (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                  isDarkMode ? 'bg-[#0d1712] border-emerald-500/20' : 'bg-emerald-50/70 border-emerald-200'
+                }`}>
+                  <div className="flex items-start gap-2.5">
+                    <Database className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold">Base de Datos Supabase Conectada</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-500">
+                          Sincronización Activa
+                        </span>
+                      </div>
+                      <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Si creaste tu tabla antes, puedes actualizar sus columnas en Supabase copiando el script SQL rápido y ejecutándolo en tu SQL Editor.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyMigrationSql}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
+                      copiedMigrationSql
+                        ? 'bg-emerald-500 text-white border-emerald-500'
+                        : isDarkMode
+                        ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/30'
+                        : 'bg-white hover:bg-emerald-100 text-emerald-700 border-emerald-300 shadow-xs'
+                    }`}
+                  >
+                    {copiedMigrationSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedMigrationSql ? '¡Copiado!' : 'Copiar Script SQL Rápido'}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Submit / Save Button Bar */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#60b64d]/10 border border-[#60b64d]/30">
