@@ -1,9 +1,10 @@
 import React from 'react';
 import { X, ShoppingBag, Plus, Minus, ShieldCheck, MapPin, Sparkles, Flame } from 'lucide-react';
-import { Product } from '../types';
+import { Product, StoreSettings } from '../types';
 
 interface Props {
   product: Product | null;
+  settings?: StoreSettings;
   onClose: () => void;
   onAddToCart: (product: Product, quantity: number) => void;
   isDarkMode: boolean;
@@ -11,20 +12,34 @@ interface Props {
 
 export const ProductQuickViewModal: React.FC<Props> = ({
   product,
+  settings,
   onClose,
   onAddToCart,
   isDarkMode,
 }) => {
   const [quantity, setQuantity] = React.useState(1);
+  const [imgError, setImgError] = React.useState(false);
 
   React.useEffect(() => {
     setQuantity(1);
+    setImgError(false);
   }, [product]);
 
   if (!product) return null;
 
   const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
   const maxStock = product.stockType === 'con_stock' ? product.stock : 999;
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Panadería': return '🍞';
+      case 'Lácteos': return '🧀';
+      case 'Embutidos': return '🥓';
+      case 'Miel y Dulces': return '🍯';
+      case 'Papa Nativa': return '🥔';
+      default: return '🌾';
+    }
+  };
 
   const handleAdd = () => {
     if (isOutOfStock) return;
@@ -52,12 +67,25 @@ export const ProductQuickViewModal: React.FC<Props> = ({
 
         <div className="flex flex-col md:grid md:grid-cols-2 overflow-y-auto no-scrollbar">
           {/* Product Image */}
-          <div className="relative shrink-0 h-48 sm:h-64 md:h-full min-h-[160px] md:min-h-[260px] bg-slate-900 overflow-hidden">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+          <div className="relative shrink-0 h-48 sm:h-64 md:h-full min-h-[160px] md:min-h-[260px] bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40 overflow-hidden flex items-center justify-center">
+            {!imgError && product.image ? (
+              <img
+                src={product.image}
+                alt={product.name}
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
+                <span className="text-5xl mb-2 filter drop-shadow">
+                  {getCategoryIcon(product.category)}
+                </span>
+                <span className="text-sm font-bold text-emerald-300">
+                  {product.name}
+                </span>
+              </div>
+            )}
             {product.badge && (
               <span className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold rounded-full bg-[#60b64d] text-white shadow-md">
                 {product.badge}
@@ -65,7 +93,7 @@ export const ProductQuickViewModal: React.FC<Props> = ({
             )}
             <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 p-1.5 sm:p-2.5 rounded-xl bg-black/60 backdrop-blur-md text-white text-[10px] sm:text-xs flex items-center gap-1.5 sm:gap-2 border border-white/10">
               <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#60b64d] shrink-0" />
-              <span className="line-clamp-1">Valle de Apurímac (Abancay - Andahuaylas)</span>
+              <span className="line-clamp-1">{product.originLocation || settings?.originLocationText || 'Valle de Apurímac (Abancay - Andahuaylas)'}</span>
             </div>
           </div>
 
@@ -87,14 +115,18 @@ export const ProductQuickViewModal: React.FC<Props> = ({
 
               {/* Guarantees & Features */}
               <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6 text-[10px] sm:text-xs">
-                <div className={`flex items-center gap-2 p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-[#08100c]' : 'bg-slate-50'}`}>
-                  <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
-                  <span>Horno tradicional a leña de piedra andina</span>
-                </div>
-                <div className={`flex items-center gap-2 p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-[#08100c]' : 'bg-slate-50'}`}>
-                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#60b64d] shrink-0" />
-                  <span>Insumos 100% ecológicos de pequeños productores</span>
-                </div>
+                {(product.customGuarantee1 || settings?.guaranteeBadge1 !== '') && (
+                  <div className={`flex items-center gap-2 p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-[#08100c]' : 'bg-slate-50'}`}>
+                    <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+                    <span>{product.customGuarantee1 || settings?.guaranteeBadge1 || 'Horno tradicional a leña de piedra andina'}</span>
+                  </div>
+                )}
+                {(product.customGuarantee2 || settings?.guaranteeBadge2 !== '') && (
+                  <div className={`flex items-center gap-2 p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-[#08100c]' : 'bg-slate-50'}`}>
+                    <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#60b64d] shrink-0" />
+                    <span>{product.customGuarantee2 || settings?.guaranteeBadge2 || 'Insumos 100% ecológicos de pequeños productores'}</span>
+                  </div>
+                )}
                 {product.unitsPerPackage > 1 && (
                   <div className={`flex items-center gap-2 p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-[#08100c]' : 'bg-slate-50'}`}>
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />

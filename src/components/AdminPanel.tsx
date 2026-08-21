@@ -394,6 +394,52 @@ export const AdminPanel: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleProductImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      onShowToast('Formato no válido', 'Por favor selecciona un archivo de imagen (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize and compress via canvas to max 1200px
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setEditingProduct((prev) => (prev ? { ...prev, image: compressedDataUrl } : null));
+          onShowToast('Imagen Cargada', 'Foto de producto cargada y optimizada con éxito.', 'success');
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleConfirmDeleteProduct = (productId: string) => {
     onDeleteProduct?.(productId);
     setDeleteConfirmProductId(null);
@@ -759,9 +805,17 @@ export const AdminPanel: React.FC<Props> = ({
   const handleSaveProductForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name) return;
-    onSaveProduct(editingProduct as Product);
+    
+    // Auto-clean and resolve direct URL
+    const cleanedImg = cleanDirectImageUrl(editingProduct.image || '');
+    const productToSave: Product = {
+      ...editingProduct,
+      image: cleanedImg || editingProduct.image || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800'
+    } as Product;
+
+    onSaveProduct(productToSave);
     setIsProductModalOpen(false);
-    onShowToast('Producto Guardado', `"${editingProduct.name}" guardado correctamente.`, 'success');
+    onShowToast('Producto Guardado', `"${productToSave.name}" guardado correctamente.`, 'success');
   };
 
   return (
@@ -2069,7 +2123,11 @@ export const AdminPanel: React.FC<Props> = ({
                             <img
                               src={p.image}
                               alt={p.name}
-                              className="w-16 h-16 rounded-xl object-cover border border-slate-500/20"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+                              }}
+                              className="w-16 h-16 rounded-xl object-cover border border-slate-500/20 bg-slate-800"
                             />
                             {p.badge && (
                               <span className="absolute -top-1.5 -left-1.5 px-1.5 py-0.2 rounded-md bg-[#60b64d] text-white text-[9px] font-bold shadow-xs">
@@ -3419,58 +3477,80 @@ export const AdminPanel: React.FC<Props> = ({
                 />
               </div>
 
-              {/* Image URL & Postimages Helper */}
-              <div className={`p-3 rounded-xl border ${
+              {/* Image URL & File Upload & Postimages Helper */}
+              <div className={`p-3.5 rounded-2xl border space-y-3 ${
                 isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-300'
               }`}>
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <label className={`font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    URL de Imagen del Producto
+                <div className="flex items-center justify-between gap-2">
+                  <label className={`font-bold text-xs block ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                    Foto / Imagen del Producto
                   </label>
-                  <a
-                    href="https://postimages.org"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-md transition-colors"
-                  >
-                    <span>📸 Subir a Postimages</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#60b64d] hover:bg-[#50a040] px-2.5 py-1 rounded-lg transition-colors shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Subir desde PC/Celular</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProductImageFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <a
+                      href="https://postimages.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded-lg transition-colors border border-emerald-500/20"
+                    >
+                      <span>Postimages</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="https://i.postimg.cc/xxxx/mi-producto.jpg"
-                  value={editingProduct.image || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
-                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
-                  }`}
-                />
-
-                <p className={`text-[10.5px] mt-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  💡 <strong>Tip Postimages:</strong> Al subir tu foto a postimages.org, copia el <span className="text-emerald-500 font-semibold">"Enlace directo"</span> (ej: <code>https://i.postimg.cc/.../foto.jpg</code>).
-                </p>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Pega un enlace directo o sube un archivo (ej: https://i.postimg.cc/.../foto.jpg)"
+                    value={editingProduct.image || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const cleaned = cleanDirectImageUrl(val);
+                      setEditingProduct({ ...editingProduct, image: cleaned });
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                      isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                  {editingProduct.image?.includes('postimg.cc') && !editingProduct.image?.includes('i.postimg.cc') && (
+                    <p className="text-[11px] mt-1 text-amber-400 font-medium">
+                      ⚠️ Atención: Has pegado un enlace de página de Postimages. En Postimages copia el campo <strong className="underline">"Enlace Directo"</strong> que empieza con <code>https://i.postimg.cc/...</code>
+                    </p>
+                  )}
+                </div>
 
                 {/* Live Preview of Product Image */}
-                {editingProduct.image && (
-                  <div className="mt-2.5 flex items-center gap-3 p-2 rounded-lg bg-black/20 border border-slate-500/10">
-                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center">
+                {editingProduct.image ? (
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-black/30 border border-slate-500/20">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center relative">
                       <img
                         src={editingProduct.image}
                         alt="Vista previa"
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = 'none';
                         }}
                       />
                     </div>
-                    <div className="text-[11px] overflow-hidden">
-                      <span className="font-bold text-emerald-400 block">✓ Vista previa de imagen</span>
-                      <span className="text-slate-400 truncate block max-w-xs">{editingProduct.image}</span>
+                    <div className="text-xs overflow-hidden flex-1">
+                      <span className="font-bold text-emerald-400 block mb-0.5">✓ Vista previa en vivo</span>
+                      <span className="text-slate-400 truncate block max-w-xs text-[11px]">
+                        {editingProduct.image.startsWith('data:image') ? 'Archivo cargado desde tu dispositivo' : editingProduct.image}
+                      </span>
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Action Buttons */}

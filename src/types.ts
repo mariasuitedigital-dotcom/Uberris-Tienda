@@ -20,6 +20,9 @@ export interface Product {
   stockType?: 'con_stock' | 'a_producir'; // 'con_stock' = stock limitado / físico; 'a_producir' = bajo demanda / sin límite
   stock: number; // For 'con_stock', units available
   badge?: 'Más Vendido' | 'Artesanal' | 'Superfood' | 'Nativo' | 'Orgánico' | 'Especialidad';
+  customGuarantee1?: string;
+  customGuarantee2?: string;
+  originLocation?: string;
   rawRecipe?: ProductRecipeItem[];
 }
 
@@ -137,6 +140,13 @@ export interface StoreSettings {
   showHours?: boolean;
   showShippingInfo?: boolean;
   showPaymentBadges?: boolean;
+  // Quality Guarantees & Hero Badges
+  guaranteeBadge1?: string;
+  guaranteeBadge2?: string;
+  originLocationText?: string;
+  heroTag?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
   updatedAt?: string;
 }
 

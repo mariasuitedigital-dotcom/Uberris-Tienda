@@ -18,7 +18,19 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
   onQuickView,
   isDarkMode
 }) => {
+  const [imgError, setImgError] = React.useState(false);
   const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Panadería': return '🍞';
+      case 'Lácteos': return '🧀';
+      case 'Embutidos': return '🥓';
+      case 'Miel y Dulces': return '🍯';
+      case 'Papa Nativa': return '🥔';
+      default: return '🌾';
+    }
+  };
 
   return (
     <motion.div
@@ -34,12 +46,25 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
       }`}
     >
       {/* Top Image area */}
-      <div className="relative h-36 sm:h-44 overflow-hidden bg-slate-900">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-        />
+      <div className="relative h-36 sm:h-44 overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
+        {!imgError && product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
+            <span className="text-3xl mb-1 filter drop-shadow">
+              {getCategoryIcon(product.category)}
+            </span>
+            <span className="text-[11px] font-bold text-emerald-300 line-clamp-1 max-w-[120px]">
+              {product.name}
+            </span>
+          </div>
+        )}
 
         {/* Badge: AGOTADO or MÁS PEDIDO or PROMO */}
         {isOutOfStock ? (

@@ -1,13 +1,15 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Flame, ShieldCheck, Truck, HeartHandshake, Wheat } from 'lucide-react';
+import { StoreSettings } from '../types';
 
 interface FloatingBreadHeroProps {
   isDarkMode: boolean;
+  settings?: StoreSettings;
   onExploreClick?: () => void;
 }
 
-export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode, onExploreClick }) => {
+export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode, settings, onExploreClick }) => {
   return (
     <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 shadow-2xl ${
       isDarkMode 
@@ -48,7 +50,7 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
             }}
           >
             <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-pulse text-[#60b64d]" />
-            <span>Apurímac en tu Mesa</span>
+            <span>{settings?.heroTag || 'Apurímac en tu Mesa'}</span>
           </motion.div>
 
           {/* Majestic Main Headline */}
@@ -59,7 +61,13 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
               transition={{ duration: 0.7, delay: 0.1 }}
               className="font-serif-craft text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.05] !font-serif"
             >
-              Sabores de <span className="text-[#60b64d] bg-gradient-to-r from-[#60b64d] to-[#4c9d3a] bg-clip-text text-transparent">Origen</span>
+              {settings?.heroTitle ? (
+                settings.heroTitle
+              ) : (
+                <>
+                  Sabores de <span className="text-[#60b64d] bg-gradient-to-r from-[#60b64d] to-[#4c9d3a] bg-clip-text text-transparent">Origen</span>
+                </>
+              )}
             </motion.h1>
           </div>
 
@@ -70,7 +78,7 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
             transition={{ duration: 0.8, delay: 0.3 }}
             className={`text-sm sm:text-lg leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}
           >
-            productos naturales y bebidas con el sabor auténtico de los andes.
+            {settings?.heroSubtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.'}
           </motion.p>
         </div>
 

@@ -65,14 +65,50 @@ export const getSavedSupabaseConfig = () => {
 
 /**
  * Postimages & External URL Helper:
- * Ensures URLs from Postimages or other CDNs are direct image links
+ * Ensures URLs from Postimages, Google Drive, Dropbox, Imgur or other CDNs are direct image links
  */
 export const cleanDirectImageUrl = (url: string): string => {
   if (!url) return '';
-  const trimmed = url.trim();
+  let trimmed = url.trim();
 
-  // If user pasted a postimg.cc gallery/viewer link instead of direct i.postimg.cc link
-  // Postimages direct link format is typically: https://i.postimg.cc/XXXX/filename.jpg
+  // 1. Extract from BBCode [img]URL[/img] or [url=...][img]URL[/img][/url]
+  const bbMatch = trimmed.match(/\[img\](.*?)\[\/img\]/i);
+  if (bbMatch && bbMatch[1]) {
+    trimmed = bbMatch[1].trim();
+  }
+
+  // 2. Extract from Markdown ![alt](URL) or HTML <img src="URL" />
+  const mdMatch = trimmed.match(/!\[.*?\]\((https?:\/\/[^\s\)]+)\)/i);
+  if (mdMatch && mdMatch[1]) {
+    trimmed = mdMatch[1].trim();
+  }
+  const htmlMatch = trimmed.match(/src=["'](https?:\/\/[^"']+)["']/i);
+  if (htmlMatch && htmlMatch[1]) {
+    trimmed = htmlMatch[1].trim();
+  }
+
+  // 3. Google Drive Share link -> Direct Image URL
+  // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing or https://drive.google.com/open?id=FILE_ID
+  const gdriveMatch1 = trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+  if (gdriveMatch1 && gdriveMatch1[1]) {
+    return `https://lh3.googleusercontent.com/d/${gdriveMatch1[1]}`;
+  }
+  const gdriveMatch2 = trimmed.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/i);
+  if (gdriveMatch2 && gdriveMatch2[1]) {
+    return `https://lh3.googleusercontent.com/d/${gdriveMatch2[1]}`;
+  }
+
+  // 4. Dropbox link -> Direct Image URL
+  if (trimmed.includes('dropbox.com') && trimmed.includes('dl=0')) {
+    trimmed = trimmed.replace('dl=0', 'raw=1');
+  }
+
+  // 5. Imgur link without extension -> Add .jpg
+  const imgurMatch = trimmed.match(/^https?:\/\/(?:i\.)?imgur\.com\/([a-zA-Z0-9]+)$/i);
+  if (imgurMatch && imgurMatch[1] && !trimmed.endsWith('.jpg') && !trimmed.endsWith('.png')) {
+    return `https://i.imgur.com/${imgurMatch[1]}.jpg`;
+  }
+
   return trimmed;
 };
 
@@ -104,7 +140,13 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS show_address BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS show_hours BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS show_shipping_info BOOLEAN DEFAULT true,
-  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true;
+  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS guarantee_badge_1 TEXT DEFAULT 'Horno tradicional a leña de piedra andina',
+  ADD COLUMN IF NOT EXISTS guarantee_badge_2 TEXT DEFAULT 'Insumos 100% ecológicos de pequeños productores',
+  ADD COLUMN IF NOT EXISTS origin_location_text TEXT DEFAULT 'Valle de Apurímac (Abancay - Andahuaylas)',
+  ADD COLUMN IF NOT EXISTS hero_tag TEXT DEFAULT 'Apurímac en tu Mesa',
+  ADD COLUMN IF NOT EXISTS hero_title TEXT DEFAULT 'Sabores de Origen',
+  ADD COLUMN IF NOT EXISTS hero_subtitle TEXT DEFAULT 'productos naturales y bebidas con el sabor auténtico de los andes.';
 `;
 
 export const SUPABASE_SQL_SETUP = `-- ============================================================================
@@ -227,6 +269,12 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   show_hours BOOLEAN DEFAULT true,
   show_shipping_info BOOLEAN DEFAULT true,
   show_payment_badges BOOLEAN DEFAULT true,
+  guarantee_badge_1 TEXT DEFAULT 'Horno tradicional a leña de piedra andina',
+  guarantee_badge_2 TEXT DEFAULT 'Insumos 100% ecológicos de pequeños productores',
+  origin_location_text TEXT DEFAULT 'Valle de Apurímac (Abancay - Andahuaylas)',
+  hero_tag TEXT DEFAULT 'Apurímac en tu Mesa',
+  hero_title TEXT DEFAULT 'Sabores de Origen',
+  hero_subtitle TEXT DEFAULT 'productos naturales y bebidas con el sabor auténtico de los andes.',
   shipping_destinations JSONB DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -799,6 +847,12 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
     showHours: data.show_hours !== false,
     showShippingInfo: data.show_shipping_info !== false,
     showPaymentBadges: data.show_payment_badges !== false,
+    guaranteeBadge1: data.guarantee_badge_1 || 'Horno tradicional a leña de piedra andina',
+    guaranteeBadge2: data.guarantee_badge_2 || 'Insumos 100% ecológicos de pequeños productores',
+    originLocationText: data.origin_location_text || 'Valle de Apurímac (Abancay - Andahuaylas)',
+    heroTag: data.hero_tag || 'Apurímac en tu Mesa',
+    heroTitle: data.hero_title || 'Sabores de Origen',
+    heroSubtitle: data.hero_subtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.',
     updatedAt: data.updated_at,
   };
 };
@@ -854,6 +908,12 @@ export const dbUpsertStoreSettings = async (
     show_hours: settings.showHours !== false,
     show_shipping_info: settings.showShippingInfo !== false,
     show_payment_badges: settings.showPaymentBadges !== false,
+    guarantee_badge_1: settings.guaranteeBadge1 || 'Horno tradicional a leña de piedra andina',
+    guarantee_badge_2: settings.guaranteeBadge2 || 'Insumos 100% ecológicos de pequeños productores',
+    origin_location_text: settings.originLocationText || 'Valle de Apurímac (Abancay - Andahuaylas)',
+    hero_tag: settings.heroTag || 'Apurímac en tu Mesa',
+    hero_title: settings.heroTitle || 'Sabores de Origen',
+    hero_subtitle: settings.heroSubtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.',
     updated_at: new Date().toISOString(),
   };
 

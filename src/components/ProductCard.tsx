@@ -16,6 +16,7 @@ export const ProductCard: React.FC<Props> = ({
   isDarkMode,
 }) => {
   const [quantity, setQuantity] = React.useState(1);
+  const [imgError, setImgError] = React.useState(false);
 
   // A product is out of stock if disabled or if it tracks stock and stock is 0 or less
   const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
@@ -26,6 +27,17 @@ export const ProductCard: React.FC<Props> = ({
     if (isOutOfStock) return;
     onAddToCart(product, quantity);
     setQuantity(1); // reset to 1 after adding
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Panadería': return '🍞';
+      case 'Lácteos': return '🧀';
+      case 'Embutidos': return '🥓';
+      case 'Miel y Dulces': return '🍯';
+      case 'Papa Nativa': return '🥔';
+      default: return '🌾';
+    }
   };
 
   return (
@@ -40,16 +52,29 @@ export const ProductCard: React.FC<Props> = ({
       }`}
     >
       {/* Product Image & Badges */}
-      <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-slate-900">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          loading="lazy"
-        />
+      <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
+        {!imgError && product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
+            <span className="text-3xl sm:text-4xl mb-1 filter drop-shadow">
+              {getCategoryIcon(product.category)}
+            </span>
+            <span className="text-[11px] font-bold text-emerald-300 line-clamp-1 max-w-[130px]">
+              {product.name}
+            </span>
+          </div>
+        )}
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+        {/* Subtle Bottom Vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity pointer-events-none" />
 
         {/* Out of Stock Badge */}
         {isOutOfStock ? (

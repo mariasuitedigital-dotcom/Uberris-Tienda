@@ -475,7 +475,7 @@ export default function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10 mb-20">
           
           {/* Hero Banner with Apurímac Artisan Atmosphere */}
-          <FloatingBreadHero isDarkMode={isDarkMode} />
+          <FloatingBreadHero settings={storeSettings} isDarkMode={isDarkMode} />
 
           {/* SECTION: LO MÁS PEDIDO */}
           {popularProducts.length > 0 && (
@@ -618,6 +618,7 @@ export default function App() {
       {/* Quick View Modal */}
       <ProductQuickViewModal
         product={quickViewProduct}
+        settings={storeSettings}
         onClose={() => setQuickViewProduct(null)}
         onAddToCart={handleAddToCart}
         isDarkMode={isDarkMode}
