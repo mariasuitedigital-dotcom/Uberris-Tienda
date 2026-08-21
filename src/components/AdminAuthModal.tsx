@@ -16,8 +16,7 @@ export const AdminAuthModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, is
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // A simple hardcoded password for now. E.g., 'uberris2026' or 'admin123'
-    if (password === 'admin123') {
+    if (password === 'uberris.22') {
       setError(false);
       setPassword('');
       onSuccess();
@@ -48,7 +47,7 @@ export const AdminAuthModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, is
           </div>
           <h2 className="text-xl font-bold font-serif-craft mb-2">Acceso Administrativo</h2>
           <p className={`text-sm mb-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            Por favor ingresa la clave de administrador para gestionar pedidos e inventario. (Clave: admin123)
+            Por favor ingresa la clave de administrador para gestionar pedidos e inventario.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

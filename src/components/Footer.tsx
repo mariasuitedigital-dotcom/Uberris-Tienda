@@ -314,14 +314,7 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            {onOpenAdmin && (
-              <button
-                onClick={onOpenAdmin}
-                className="text-slate-400 hover:text-emerald-500 text-[11px] font-semibold transition-colors"
-              >
-                Acceso Administración
-              </button>
-            )}
+            {/* Admin shortcut hidden from public ui */}
           </div>
         </div>
       </div>

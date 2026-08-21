@@ -71,22 +71,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </div>
           <span>Carrito</span>
         </button>
-
-        {/* Admin / Hornada */}
-        <button
-          onClick={onOpenAdmin}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-amber-400 relative transition-colors"
-        >
-          <div className="relative">
-            <ShieldCheck className="w-5 h-5 text-amber-500" />
-            {pendingOrdersCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-amber-500 text-slate-950 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-extrabold">
-                {pendingOrdersCount}
-              </span>
-            )}
-          </div>
-          <span className="text-amber-600 dark:text-amber-400">Admin</span>
-        </button>
       </div>
     </nav>
   );
