@@ -361,7 +361,9 @@ ${itemsListText}-----------------------------------------
 
                 {/* Client Name */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
+                  <label className={`text-xs font-bold flex items-center gap-1 mb-1 ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     <User className="w-3.5 h-3.5 text-[#60b64d]" />
                     Nombre Completo del Cliente
                   </label>
@@ -374,14 +376,16 @@ ${itemsListText}-----------------------------------------
                     className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
                       isDarkMode
                         ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                     }`}
                   />
                 </div>
 
                 {/* Client Phone */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
+                  <label className={`text-xs font-bold flex items-center gap-1 mb-1 ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     <Phone className="w-3.5 h-3.5 text-[#60b64d]" />
                     Teléfono / WhatsApp de Contacto
                   </label>
@@ -394,14 +398,16 @@ ${itemsListText}-----------------------------------------
                     className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
                       isDarkMode
                         ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                     }`}
                   />
                 </div>
 
                 {/* Modalidad de Envío */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                  <label className={`text-xs font-bold flex items-center gap-1 ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     <Truck className="w-3.5 h-3.5 text-[#60b64d]" />
                     Agencia / Método de Envío
                   </label>
@@ -471,19 +477,21 @@ ${itemsListText}-----------------------------------------
                   {/* Palomino Branches Dropdown & Details */}
                   {shippingType === 'palomino' && (
                     <div className={`p-3 rounded-xl border space-y-2.5 animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/50 border-emerald-200'
+                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/80 border-emerald-300 shadow-xs'
                     }`}>
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                        <label className={`text-[11px] font-bold block mb-1 ${
+                          isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                        }`}>
                           Selecciona la Sede de Palomino de llegada:
                         </label>
                         <select
                           value={selectedPalominoId}
                           onChange={(e) => setSelectedPalominoId(e.target.value)}
-                          className={`w-full p-2 text-xs rounded-lg border font-medium focus:outline-none ${
+                          className={`w-full p-2.5 text-xs rounded-lg border font-semibold focus:outline-none ${
                             isDarkMode
                               ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-[#60b64d]'
-                              : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                           }`}
                         >
                           <optgroup label="📍 Lima">
@@ -506,24 +514,30 @@ ${itemsListText}-----------------------------------------
 
                       {/* Branch Info Card */}
                       {currentPalominoBranch && (
-                        <div className="p-2.5 rounded-lg bg-black/20 border border-emerald-500/20 text-xs space-y-1.5">
-                          <div className="flex items-start gap-1.5 text-slate-300">
-                            <MapPin className="w-3.5 h-3.5 text-[#60b64d] shrink-0 mt-0.5" />
-                            <span className="font-semibold text-[11px] text-white">
+                        <div className={`p-3 rounded-xl border text-xs space-y-2 ${
+                          isDarkMode ? 'bg-[#08100c] border-emerald-500/30' : 'bg-white border-emerald-300 shadow-xs'
+                        }`}>
+                          <div className="flex items-start gap-1.5">
+                            <MapPin className="w-4 h-4 text-[#60b64d] shrink-0 mt-0.5" />
+                            <span className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                               {currentPalominoBranch.address}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                            <Clock className="w-3 h-3 text-[#60b64d] shrink-0" />
+                          <div className={`flex items-center gap-1.5 text-[11px] font-medium ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                          }`}>
+                            <Clock className="w-3.5 h-3.5 text-[#60b64d] shrink-0" />
                             <span>Atención: {currentPalominoBranch.hours}</span>
                           </div>
 
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-700/30 text-[11px]">
-                            <span className="text-emerald-400 font-bold">
+                          <div className={`flex items-center justify-between pt-1.5 border-t text-[11px] ${
+                            isDarkMode ? 'border-slate-800' : 'border-slate-200'
+                          }`}>
+                            <span className={`font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
                               ⚡ {currentPalominoBranch.arrivalNotice}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                               (Envío: 4:00 PM)
                             </span>
                           </div>
@@ -531,10 +545,12 @@ ${itemsListText}-----------------------------------------
                       )}
 
                       {/* Freight Policy Note */}
-                      <div className="flex items-start gap-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-300">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <div className={`flex items-start gap-1.5 p-2.5 rounded-xl border text-[11px] leading-relaxed ${
+                        isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-950 font-medium'
+                      }`}>
+                        <Info className={`w-4 h-4 shrink-0 mt-0.5 ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`} />
                         <span>
-                          <strong>Flete en destino:</strong> El costo de envío (mínimo S/ 20.00) se cancela directamente al recoger el paquete en la agencia Palomino.
+                          <strong className="font-bold">Flete en destino:</strong> El costo de envío (mínimo S/ 20.00) se cancela directamente al recoger el paquete en la agencia Palomino.
                         </span>
                       </div>
                     </div>
@@ -543,19 +559,21 @@ ${itemsListText}-----------------------------------------
                   {/* Rivera Cargo Dropdown & Details */}
                   {shippingType === 'rivera_cargo' && (
                     <div className={`p-3 rounded-xl border space-y-2.5 animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/50 border-emerald-200'
+                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/80 border-emerald-300 shadow-xs'
                     }`}>
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                        <label className={`text-[11px] font-bold block mb-1 ${
+                          isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                        }`}>
                           Selecciona la Sede de Rivera Cargo de llegada:
                         </label>
                         <select
                           value={selectedRiveraId}
                           onChange={(e) => setSelectedRiveraId(e.target.value)}
-                          className={`w-full p-2 text-xs rounded-lg border font-medium focus:outline-none ${
+                          className={`w-full p-2.5 text-xs rounded-lg border font-semibold focus:outline-none ${
                             isDarkMode
                               ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-[#60b64d]'
-                              : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                           }`}
                         >
                           <optgroup label="📍 Lima Centro, Norte y Sur (Diario)">
@@ -578,30 +596,38 @@ ${itemsListText}-----------------------------------------
 
                       {/* Branch Info Card */}
                       {currentRiveraBranch && (
-                        <div className="p-2.5 rounded-lg bg-black/20 border border-emerald-500/20 text-xs space-y-1.5">
-                          <div className="flex items-start gap-1.5 text-slate-300">
-                            <MapPin className="w-3.5 h-3.5 text-[#60b64d] shrink-0 mt-0.5" />
-                            <span className="font-semibold text-[11px] text-white">
+                        <div className={`p-3 rounded-xl border text-xs space-y-2 ${
+                          isDarkMode ? 'bg-[#08100c] border-emerald-500/30' : 'bg-white border-emerald-300 shadow-xs'
+                        }`}>
+                          <div className="flex items-start gap-1.5">
+                            <MapPin className="w-4 h-4 text-[#60b64d] shrink-0 mt-0.5" />
+                            <span className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                               {currentRiveraBranch.address}
                             </span>
                           </div>
 
                           {currentRiveraBranch.phone && (
-                            <div className="flex items-center gap-1.5 text-slate-300 text-[11px]">
-                              <Phone className="w-3 h-3 text-[#60b64d] shrink-0" />
+                            <div className={`flex items-center gap-1.5 text-[11px] font-medium ${
+                              isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                            }`}>
+                              <Phone className="w-3.5 h-3.5 text-[#60b64d] shrink-0" />
                               <span>
-                                Counter: <a href={`tel:${currentRiveraBranch.phone.replace(/\s/g, '')}`} className="text-emerald-400 font-bold underline ml-1">{currentRiveraBranch.phone}</a>
+                                Counter: <a href={`tel:${currentRiveraBranch.phone.replace(/\s/g, '')}`} className="text-emerald-600 dark:text-emerald-400 font-bold underline ml-1">{currentRiveraBranch.phone}</a>
                               </span>
                             </div>
                           )}
 
-                          <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                            <Clock className="w-3 h-3 text-[#60b64d] shrink-0" />
+                          <div className={`flex items-center gap-1.5 text-[11px] font-medium ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                          }`}>
+                            <Clock className="w-3.5 h-3.5 text-[#60b64d] shrink-0" />
                             <span>{currentRiveraBranch.dispatchSchedule}</span>
                           </div>
 
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-700/30 text-[11px]">
-                            <span className="text-emerald-400 font-bold">
+                          <div className={`flex items-center justify-between pt-1.5 border-t text-[11px] ${
+                            isDarkMode ? 'border-slate-800' : 'border-slate-200'
+                          }`}>
+                            <span className={`font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
                               ⚡ {currentRiveraBranch.arrivalNotice}
                             </span>
                           </div>
@@ -609,10 +635,12 @@ ${itemsListText}-----------------------------------------
                       )}
 
                       {/* Freight Policy Note */}
-                      <div className="flex items-start gap-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-300">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <div className={`flex items-start gap-1.5 p-2.5 rounded-xl border text-[11px] leading-relaxed ${
+                        isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-950 font-medium'
+                      }`}>
+                        <Info className={`w-4 h-4 shrink-0 mt-0.5 ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`} />
                         <span>
-                          <strong>Flete en destino:</strong> El costo de envío se cancela directamente al recoger el paquete en la agencia Rivera Cargo.
+                          <strong className="font-bold">Flete en destino:</strong> El costo de envío se cancela directamente al recoger el paquete en la agencia Rivera Cargo.
                         </span>
                       </div>
                     </div>
@@ -621,19 +649,21 @@ ${itemsListText}-----------------------------------------
                   {/* Other Agency Selector & Inputs */}
                   {shippingType === 'agency' && (
                     <div className={`p-3 rounded-xl border space-y-2.5 animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-slate-50 border-slate-300 shadow-xs'
                     }`}>
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                        <label className={`text-[11px] font-bold block mb-1 ${
+                          isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                        }`}>
                           Empresa de Encomiendas:
                         </label>
                         <select
                           value={selectedOtherAgency}
                           onChange={(e) => setSelectedOtherAgency(e.target.value)}
-                          className={`w-full p-2 text-xs rounded-lg border font-medium focus:outline-none ${
+                          className={`w-full p-2.5 text-xs rounded-lg border font-semibold focus:outline-none ${
                             isDarkMode
                               ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-[#60b64d]'
-                              : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                           }`}
                         >
                           {OTHER_SHIPPING_AGENCIES.map((ag) => (
@@ -643,7 +673,9 @@ ${itemsListText}-----------------------------------------
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-400 block mb-1">
+                        <label className={`text-[11px] font-bold block mb-1 ${
+                          isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                        }`}>
                           Ciudad / Sede o Dirección de Llegada:
                         </label>
                         <input
@@ -652,18 +684,20 @@ ${itemsListText}-----------------------------------------
                           value={customAgencyBranch}
                           onChange={(e) => setCustomAgencyBranch(e.target.value)}
                           placeholder="Ej. Shalom Los Olivos, Lima o Marvisur Cusco..."
-                          className={`w-full p-2 text-xs rounded-lg border focus:outline-none ${
+                          className={`w-full p-2.5 text-xs rounded-lg border focus:outline-none ${
                             isDarkMode
                               ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-[#60b64d]'
-                              : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                              : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                           }`}
                         />
                       </div>
 
-                      <div className="flex items-start gap-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-300">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <div className={`flex items-start gap-1.5 p-2.5 rounded-xl border text-[11px] leading-relaxed ${
+                        isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-950 font-medium'
+                      }`}>
+                        <Info className={`w-4 h-4 shrink-0 mt-0.5 ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`} />
                         <span>
-                          <strong>Pago contra entrega:</strong> El costo del flete de la encomienda es asumido y cancelado por el cliente al recoger en la agencia.
+                          <strong className="font-bold">Pago contra entrega:</strong> El costo del flete de la encomienda es asumido y cancelado por el cliente al recoger en la agencia.
                         </span>
                       </div>
                     </div>
@@ -672,13 +706,17 @@ ${itemsListText}-----------------------------------------
                   {/* Store Pickup */}
                   {shippingType === 'store_pickup' && (
                     <div className={`p-3 rounded-xl border space-y-1.5 animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+                      isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/80 border-emerald-300 shadow-xs'
                     }`}>
-                      <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
+                      <div className={`flex items-center gap-2 font-bold text-xs ${
+                        isDarkMode ? 'text-emerald-400' : 'text-emerald-800'
+                      }`}>
                         <Store className="w-4 h-4" />
                         <span>Recojo directo en Horno & Tienda Uberris</span>
                       </div>
-                      <p className="text-[11px] text-slate-400">
+                      <p className={`text-[11px] font-medium ${
+                        isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                      }`}>
                         📍 Abancay, Apurímac. Te notificaremos por WhatsApp en cuanto tu hornada esté lista para retiro. Sin costo de flete.
                       </p>
                     </div>
@@ -687,7 +725,9 @@ ${itemsListText}-----------------------------------------
 
                 {/* Payment Method Selector */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-2">
+                  <label className={`text-xs font-bold flex items-center gap-1 mb-2 ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     <CreditCard className="w-3.5 h-3.5 text-[#60b64d]" />
                     Método de Pago
                   </label>
@@ -698,14 +738,14 @@ ${itemsListText}-----------------------------------------
                       onClick={() => setPaymentMethod('yape')}
                       className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${
                         paymentMethod === 'yape'
-                          ? 'border-[#742284] bg-[#742284]/15 text-[#a855f7] shadow-sm ring-1 ring-[#742284]'
+                          ? 'border-[#742284] bg-[#742284]/15 text-[#742284] dark:text-[#a855f7] shadow-sm ring-2 ring-[#742284]'
                           : isDarkMode
                           ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#742284]/50'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#742284]/50'
+                          : 'border-slate-300 bg-white text-slate-800 hover:border-[#742284]/50'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#742284]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#742284]" />
                         <span className="font-extrabold text-[11px] sm:text-sm">Yape</span>
                       </div>
                     </button>
@@ -715,14 +755,14 @@ ${itemsListText}-----------------------------------------
                       onClick={() => setPaymentMethod('plin')}
                       className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${
                         paymentMethod === 'plin'
-                          ? 'border-[#00e3ff] bg-[#00e3ff]/15 text-[#00e3ff] shadow-sm ring-1 ring-[#00e3ff]'
+                          ? 'border-[#00a8c2] dark:border-[#00e3ff] bg-[#00e3ff]/15 text-[#008ba3] dark:text-[#00e3ff] shadow-sm ring-2 ring-[#00a8c2]'
                           : isDarkMode
                           ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#00e3ff]/50'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#00e3ff]/50'
+                          : 'border-slate-300 bg-white text-slate-800 hover:border-[#00e3ff]/50'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#00e3ff]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#00e3ff]" />
                         <span className="font-extrabold text-[11px] sm:text-sm">Plin</span>
                       </div>
                     </button>
@@ -732,47 +772,55 @@ ${itemsListText}-----------------------------------------
                       onClick={() => setPaymentMethod('bcp')}
                       className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${
                         paymentMethod === 'bcp'
-                          ? 'border-[#ff7800] bg-[#ff7800]/15 text-[#ff9800] shadow-sm ring-1 ring-[#ff7800]'
+                          ? 'border-[#002a8f] bg-[#002a8f]/10 text-[#002a8f] dark:text-[#0052ff] shadow-sm ring-2 ring-[#002a8f]'
                           : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#ff7800]/50'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#ff7800]/50'
+                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#002a8f]/50'
+                          : 'border-slate-300 bg-white text-slate-800 hover:border-[#002a8f]/50'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#002a8f]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#002a8f]" />
                         <span className="font-extrabold text-[11px] sm:text-sm">Banco</span>
                       </div>
                     </button>
                   </div>
 
-                      {/* Payment Details & Copy Info */}
+                  {/* Payment Details & Copy Info */}
                   {paymentMethod === 'yape' && (
-                    <div className={`p-3 rounded-xl border animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#742284]/10 border-[#742284]/30' : 'bg-purple-50 border-purple-200'
+                    <div className={`p-3.5 rounded-2xl border animate-in fade-in duration-150 ${
+                      isDarkMode ? 'bg-[#742284]/15 border-[#742284]/40' : 'bg-purple-50/90 border-purple-300 shadow-xs'
                     }`}>
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-semibold text-purple-400">Número de Yape:</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium">
+                      <div className="flex items-center justify-between text-xs mb-2">
+                        <span className={`font-bold ${isDarkMode ? 'text-purple-300' : 'text-purple-950'}`}>
+                          Número de Yape:
+                        </span>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
+                          isDarkMode ? 'bg-purple-500/20 text-purple-200' : 'bg-purple-200 text-purple-900'
+                        }`}>
                           Titular: {settings?.yapeName || 'Uberris'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/20 border border-purple-500/20">
-                        <span className="font-mono text-sm font-bold tracking-wider text-purple-200">
+                      <div className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border ${
+                        isDarkMode ? 'bg-[#0a0612] border-purple-500/30' : 'bg-white border-purple-200 shadow-xs'
+                      }`}>
+                        <span className={`font-mono text-base font-extrabold tracking-wider ${
+                          isDarkMode ? 'text-purple-200' : 'text-purple-950'
+                        }`}>
                           {settings?.yapeNumber || '932 220 326'}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleCopy(settings?.yapeNumber || '932 220 326', 'yape')}
-                          className="px-2.5 py-1 rounded-md bg-[#742284] hover:bg-[#8e2ba1] text-white text-xs font-semibold flex items-center gap-1 transition-all"
+                          className="px-3 py-1.5 rounded-lg bg-[#742284] hover:bg-[#8e2ba1] text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                         >
                           {copiedField === 'yape' ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
                               <span>¡Copiado!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3.5 h-3.5" />
+                              <Copy className="w-4 h-4" />
                               <span>Copiar</span>
                             </>
                           )}
@@ -782,32 +830,40 @@ ${itemsListText}-----------------------------------------
                   )}
 
                   {paymentMethod === 'plin' && (
-                    <div className={`p-3 rounded-xl border animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#00e3ff]/10 border-[#00e3ff]/30' : 'bg-cyan-50 border-cyan-200'
+                    <div className={`p-3.5 rounded-2xl border animate-in fade-in duration-150 ${
+                      isDarkMode ? 'bg-[#00e3ff]/15 border-[#00e3ff]/40' : 'bg-cyan-50/90 border-cyan-300 shadow-xs'
                     }`}>
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-semibold text-cyan-500">Número de Plin:</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 font-medium">
+                      <div className="flex items-center justify-between text-xs mb-2">
+                        <span className={`font-bold ${isDarkMode ? 'text-cyan-300' : 'text-cyan-950'}`}>
+                          Número de Plin:
+                        </span>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
+                          isDarkMode ? 'bg-cyan-500/20 text-cyan-200' : 'bg-cyan-200 text-cyan-900'
+                        }`}>
                           Titular: {settings?.plinName || 'Uberris'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/20 border border-cyan-500/20">
-                        <span className="font-mono text-sm font-bold tracking-wider text-cyan-600 dark:text-cyan-200">
+                      <div className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border ${
+                        isDarkMode ? 'bg-[#041114] border-cyan-500/30' : 'bg-white border-cyan-200 shadow-xs'
+                      }`}>
+                        <span className={`font-mono text-base font-extrabold tracking-wider ${
+                          isDarkMode ? 'text-cyan-200' : 'text-cyan-950'
+                        }`}>
                           {settings?.plinNumber || '983 746 281'}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleCopy(settings?.plinNumber || '983 746 281', 'plin')}
-                          className="px-2.5 py-1 rounded-md bg-[#00e3ff] hover:bg-[#00c3db] text-slate-900 text-xs font-semibold flex items-center gap-1 transition-all"
+                          className="px-3 py-1.5 rounded-lg bg-[#00a8c2] hover:bg-[#008ea5] text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                         >
                           {copiedField === 'plin' ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
                               <span>¡Copiado!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3.5 h-3.5" />
+                              <Copy className="w-4 h-4" />
                               <span>Copiar</span>
                             </>
                           )}
@@ -817,66 +873,82 @@ ${itemsListText}-----------------------------------------
                   )}
 
                   {paymentMethod === 'bcp' && (
-                    <div className={`p-3 rounded-xl border space-y-2 animate-in fade-in duration-150 ${
-                      isDarkMode ? 'bg-[#002a8f]/10 border-[#002a8f]/30' : 'bg-blue-50 border-blue-200'
+                    <div className={`p-3.5 rounded-2xl border space-y-2.5 animate-in fade-in duration-150 ${
+                      isDarkMode ? 'bg-[#002a8f]/15 border-[#002a8f]/40' : 'bg-blue-50/90 border-blue-300 shadow-xs'
                     }`}>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-blue-400">Banco: {settings?.bankAccountBank || 'BCP'}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">
+                        <span className={`font-bold text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-950'}`}>
+                          Banco: {settings?.bankAccountBank || 'BCP'}
+                        </span>
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
+                          isDarkMode ? 'bg-blue-500/20 text-blue-200' : 'bg-blue-200 text-blue-900'
+                        }`}>
                           {settings?.bankAccountName || 'Uberris'}
                         </span>
                       </div>
 
                       {/* Cuenta BCP */}
-                      <div className="p-2 rounded-lg bg-black/20 border border-blue-500/20">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                          <span>N° de Cuenta Soles:</span>
+                      <div className={`p-2.5 rounded-xl border ${
+                        isDarkMode ? 'bg-[#040a17] border-blue-500/30' : 'bg-white border-blue-200 shadow-xs'
+                      }`}>
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className={`font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
+                            N° de Cuenta Soles:
+                          </span>
                           <button
                             type="button"
                             onClick={() => handleCopy(settings?.bankAccountNumber || '30500617175095', 'bcp_cta')}
-                            className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-all"
+                            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                           >
                             {copiedField === 'bcp_cta' ? (
                               <>
-                                <CheckCircle2 className="w-3 h-3 text-emerald-300" />
-                                <span>Copiado</span>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                                <span>¡Copiado!</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3" />
+                                <Copy className="w-3.5 h-3.5" />
                                 <span>Copiar</span>
                               </>
                             )}
                           </button>
                         </div>
-                        <span className="font-mono text-xs font-bold tracking-wider text-blue-200 block">
+                        <span className={`font-mono text-sm sm:text-base font-extrabold tracking-wider block ${
+                          isDarkMode ? 'text-blue-200' : 'text-blue-950'
+                        }`}>
                           {settings?.bankAccountNumber || '30500617175095'}
                         </span>
                       </div>
 
                       {/* CCI */}
-                      <div className="p-2 rounded-lg bg-black/20 border border-blue-500/20">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                          <span>N° Cuenta Interbancaria (CCI):</span>
+                      <div className={`p-2.5 rounded-xl border ${
+                        isDarkMode ? 'bg-[#040a17] border-blue-500/30' : 'bg-white border-blue-200 shadow-xs'
+                      }`}>
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className={`font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>
+                            N° Cuenta Interbancaria (CCI):
+                          </span>
                           <button
                             type="button"
                             onClick={() => handleCopy(settings?.bankAccountCci || '00230510061717509519', 'bcp_cci')}
-                            className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-all"
+                            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
                           >
                             {copiedField === 'bcp_cci' ? (
                               <>
-                                <CheckCircle2 className="w-3 h-3 text-emerald-300" />
-                                <span>Copiado</span>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                                <span>¡Copiado!</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3" />
+                                <Copy className="w-3.5 h-3.5" />
                                 <span>Copiar</span>
                               </>
                             )}
                           </button>
                         </div>
-                        <span className="font-mono text-[11px] font-bold tracking-wider text-blue-200 block break-all">
+                        <span className={`font-mono text-xs sm:text-sm font-extrabold tracking-wider block break-all ${
+                          isDarkMode ? 'text-blue-200' : 'text-blue-950'
+                        }`}>
                           {settings?.bankAccountCci || '00230510061717509519'}
                         </span>
                       </div>
@@ -886,7 +958,9 @@ ${itemsListText}-----------------------------------------
 
                 {/* Notes */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1 mb-1">
+                  <label className={`text-xs font-bold flex items-center gap-1 mb-1 ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
                     <FileText className="w-3.5 h-3.5 text-[#60b64d]" />
                     Notas Adicionales (Opcional)
                   </label>
@@ -898,7 +972,7 @@ ${itemsListText}-----------------------------------------
                     className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
                       isDarkMode
                         ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-[#60b64d]'
+                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
                     }`}
                   />
                 </div>
@@ -906,7 +980,7 @@ ${itemsListText}-----------------------------------------
                 {/* Submit button */}
                 <div className="pt-2">
                   <div className="flex items-center justify-between mb-3 text-sm">
-                    <span className="font-semibold text-slate-400">Total a Pagar:</span>
+                    <span className={`font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Total a Pagar:</span>
                     <span className="font-serif-craft text-2xl font-bold text-[#60b64d]">
                       S/ {totalAmount.toFixed(2)}
                     </span>
@@ -914,12 +988,14 @@ ${itemsListText}-----------------------------------------
 
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#60b64d] to-[#50a040] hover:brightness-105 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#60b64d]/25 transition-all"
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#60b64d] to-[#50a040] hover:brightness-105 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#60b64d]/25 transition-all cursor-pointer"
                   >
                     <Send className="w-4 h-4" />
                     <span>Enviar Pedido por WhatsApp</span>
                   </button>
-                  <p className="text-[10px] text-center text-slate-400 mt-2">
+                  <p className={`text-[10.5px] text-center font-medium mt-2 ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
                     ⚡ Se abrirá WhatsApp con el formato de tu pedido, sede de agencia y datos para el envío.
                   </p>
                 </div>

@@ -146,7 +146,10 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS origin_location_text TEXT DEFAULT 'Valle de Apurímac (Abancay - Andahuaylas)',
   ADD COLUMN IF NOT EXISTS hero_tag TEXT DEFAULT 'Apurímac en tu Mesa',
   ADD COLUMN IF NOT EXISTS hero_title TEXT DEFAULT 'Sabores de Origen',
-  ADD COLUMN IF NOT EXISTS hero_subtitle TEXT DEFAULT 'productos naturales y bebidas con el sabor auténtico de los andes.';
+  ADD COLUMN IF NOT EXISTS hero_subtitle TEXT DEFAULT 'productos naturales y bebidas con el sabor auténtico de los andes.',
+  ADD COLUMN IF NOT EXISTS hero_image_1 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_image_2 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_image_3 TEXT;
 `;
 
 export const SUPABASE_SQL_SETUP = `-- ============================================================================
@@ -853,6 +856,9 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
     heroTag: data.hero_tag || 'Apurímac en tu Mesa',
     heroTitle: data.hero_title || 'Sabores de Origen',
     heroSubtitle: data.hero_subtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.',
+    heroImage1: data.hero_image_1 || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
+    heroImage2: data.hero_image_2 || 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600',
+    heroImage3: data.hero_image_3 || 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600',
     updatedAt: data.updated_at,
   };
 };
@@ -914,6 +920,9 @@ export const dbUpsertStoreSettings = async (
     hero_tag: settings.heroTag || 'Apurímac en tu Mesa',
     hero_title: settings.heroTitle || 'Sabores de Origen',
     hero_subtitle: settings.heroSubtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.',
+    hero_image_1: cleanDirectImageUrl(settings.heroImage1 || ''),
+    hero_image_2: cleanDirectImageUrl(settings.heroImage2 || ''),
+    hero_image_3: cleanDirectImageUrl(settings.heroImage3 || ''),
     updated_at: new Date().toISOString(),
   };
 

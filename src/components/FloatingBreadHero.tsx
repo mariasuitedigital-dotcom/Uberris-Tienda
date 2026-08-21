@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Flame, ShieldCheck, Truck, HeartHandshake, Wheat } from 'lucide-react';
 import { StoreSettings } from '../types';
+import { cleanDirectImageUrl } from './AdminPanel';
 
 interface FloatingBreadHeroProps {
   isDarkMode: boolean;
@@ -112,8 +113,8 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
             className="absolute z-20 w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-full cursor-grab active:cursor-grabbing shadow-2xl overflow-hidden border-2 border-[#60b64d]/50 group"
           >
             <img
-              src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800"
-              alt="Pan Chapla Artesanal Tradicional"
+              src={cleanDirectImageUrl(settings?.heroImage1 || '') || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800'}
+              alt="Producto Principal - Banner"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
@@ -149,8 +150,8 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
             className="absolute -left-1 sm:-left-4 md:-left-6 top-6 sm:top-10 z-10 w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-amber-500/40 group"
           >
             <img
-              src="https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600"
-              alt="Queso Paria Artesanal Maduro"
+              src={cleanDirectImageUrl(settings?.heroImage2 || '') || 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600'}
+              alt="Producto Superior - Banner"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
@@ -192,8 +193,8 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({ isDarkMode
             className="absolute -right-1 sm:-right-3 md:-right-6 bottom-6 sm:bottom-10 md:bottom-12 z-10 w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full cursor-grab active:cursor-grabbing shadow-xl overflow-hidden border-2 border-emerald-500/40 group"
           >
             <img
-              src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600"
-              alt="Miel Pura de Monte Andino"
+              src={cleanDirectImageUrl(settings?.heroImage3 || '') || 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600'}
+              alt="Producto Inferior - Banner"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />

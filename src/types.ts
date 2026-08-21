@@ -147,6 +147,9 @@ export interface StoreSettings {
   heroTag?: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  heroImage1?: string;
+  heroImage2?: string;
+  heroImage3?: string;
   updatedAt?: string;
 }
 

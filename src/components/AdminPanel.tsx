@@ -414,6 +414,60 @@ export const AdminPanel: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleHeroImage1FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setEditingSettings((prev) => ({ ...prev, heroImage1: dataUrl }));
+        onShowToast('Imagen Central Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleHeroImage2FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setEditingSettings((prev) => ({ ...prev, heroImage2: dataUrl }));
+        onShowToast('Imagen Superior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleHeroImage3FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      onShowToast('Archivo muy pesado', 'Por favor selecciona una imagen menor a 5MB.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setEditingSettings((prev) => ({ ...prev, heroImage3: dataUrl }));
+        onShowToast('Imagen Inferior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleProductImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -3299,6 +3353,154 @@ export const AdminPanel: React.FC<Props> = ({
                         isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
                       }`}
                     />
+                  </div>
+
+                  {/* Hero Images Management Section (The 3 Circular Images) */}
+                  <div className="md:col-span-2 pt-4 border-t border-dashed border-emerald-500/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                          📸 Imágenes Circulares Flotantes del Banner (Hero)
+                        </h4>
+                        <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                          Cambia las 3 imágenes circulares que flotan en el banner principal "Sabores de Origen".
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Image 1: Central Circle */}
+                      <div className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-emerald-500">1. Círculo Central (Grande)</span>
+                          <span className="text-[10px] text-slate-400">Ej: Panes / Trigo</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-500 shrink-0 bg-black/20">
+                            <img
+                              src={cleanDirectImageUrl(editingSettings.heroImage1 || '') || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800'}
+                              alt="Círculo Central"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            <input
+                              type="text"
+                              placeholder="URL de la imagen (https://...)"
+                              value={editingSettings.heroImage1 || ''}
+                              onChange={(e) => setEditingSettings({ ...editingSettings, heroImage1: e.target.value })}
+                              className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                              }`}
+                            />
+                            <div className="flex items-center gap-1.5">
+                              <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                <Upload className="w-3 h-3" />
+                                <span>Subir</span>
+                                <input type="file" accept="image/*" onChange={handleHeroImage1FileUpload} className="hidden" />
+                              </label>
+                              {editingSettings.heroImage1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSettings({ ...editingSettings, heroImage1: undefined })}
+                                  className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                >
+                                  Restablecer
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Image 2: Top Left Circle */}
+                      <div className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-amber-500">2. Círculo Superior (Izq)</span>
+                          <span className="text-[10px] text-slate-400">Ej: Queso Paria</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-500 shrink-0 bg-black/20">
+                            <img
+                              src={cleanDirectImageUrl(editingSettings.heroImage2 || '') || 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600'}
+                              alt="Círculo Superior"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            <input
+                              type="text"
+                              placeholder="URL de la imagen (https://...)"
+                              value={editingSettings.heroImage2 || ''}
+                              onChange={(e) => setEditingSettings({ ...editingSettings, heroImage2: e.target.value })}
+                              className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                              }`}
+                            />
+                            <div className="flex items-center gap-1.5">
+                              <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                <Upload className="w-3 h-3" />
+                                <span>Subir</span>
+                                <input type="file" accept="image/*" onChange={handleHeroImage2FileUpload} className="hidden" />
+                              </label>
+                              {editingSettings.heroImage2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSettings({ ...editingSettings, heroImage2: undefined })}
+                                  className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                >
+                                  Restablecer
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Image 3: Bottom Right Circle */}
+                      <div className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-emerald-400">3. Círculo Inferior (Der)</span>
+                          <span className="text-[10px] text-slate-400">Ej: Miel / Fruta</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-400 shrink-0 bg-black/20">
+                            <img
+                              src={cleanDirectImageUrl(editingSettings.heroImage3 || '') || 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600'}
+                              alt="Círculo Inferior"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            <input
+                              type="text"
+                              placeholder="URL de la imagen (https://...)"
+                              value={editingSettings.heroImage3 || ''}
+                              onChange={(e) => setEditingSettings({ ...editingSettings, heroImage3: e.target.value })}
+                              className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-[#300] text-slate-900'
+                              }`}
+                            />
+                            <div className="flex items-center gap-1.5">
+                              <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                <Upload className="w-3 h-3" />
+                                <span>Subir</span>
+                                <input type="file" accept="image/*" onChange={handleHeroImage3FileUpload} className="hidden" />
+                              </label>
+                              {editingSettings.heroImage3 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSettings({ ...editingSettings, heroImage3: undefined })}
+                                  className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                >
+                                  Restablecer
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
