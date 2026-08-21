@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ProductCategory, Product } from '../types';
+import { cleanDirectImageUrl } from '../lib/supabase';
 
 interface CategoriesGridProps {
   products: Product[];
   onSelectCategory: (category: ProductCategory | 'Todos') => void;
   isDarkMode: boolean;
+  categoryImages?: Record<string, string>;
 }
 
 interface CategoryInfo {
@@ -45,12 +47,15 @@ const CATEGORY_DEFINITIONS: CategoryInfo[] = [
 export const CategoriesGrid: React.FC<CategoriesGridProps> = ({
   products,
   onSelectCategory,
-  isDarkMode
+  isDarkMode,
+  categoryImages
 }) => {
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
       {CATEGORY_DEFINITIONS.map((cat) => {
         const count = products.filter((p) => p.category === cat.id).length;
+        const customUrl = categoryImages?.[cat.id];
+        const finalImgUrl = cleanDirectImageUrl(customUrl || '') || cat.imageUrl;
 
         return (
           <motion.div
@@ -62,8 +67,11 @@ export const CategoriesGrid: React.FC<CategoriesGridProps> = ({
           >
             {/* Image background */}
             <img
-              src={cat.imageUrl}
+              src={finalImgUrl}
               alt={cat.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = cat.imageUrl;
+              }}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
 

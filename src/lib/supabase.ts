@@ -281,6 +281,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   hero_image_1 TEXT,
   hero_image_2 TEXT,
   hero_image_3 TEXT,
+  category_images JSONB DEFAULT '{}'::jsonb,
   shipping_destinations JSONB DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -306,7 +307,11 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS show_address BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS show_hours BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS show_shipping_info BOOLEAN DEFAULT true,
-  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true;
+  ADD COLUMN IF NOT EXISTS show_payment_badges BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS hero_image_1 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_image_2 TEXT,
+  ADD COLUMN IF NOT EXISTS hero_image_3 TEXT,
+  ADD COLUMN IF NOT EXISTS category_images JSONB DEFAULT '{}'::jsonb;
 
 -- 7. TABLA: PLANIFICACIÓN DE HORNADAS / LOTES DE PRODUCCIÓN
 CREATE TABLE IF NOT EXISTS public.production_batches (
@@ -865,6 +870,13 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
     heroImage1: data.hero_image_1 || localSavedSettings.heroImage1 || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
     heroImage2: data.hero_image_2 || localSavedSettings.heroImage2 || 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=600',
     heroImage3: data.hero_image_3 || localSavedSettings.heroImage3 || 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=600',
+    categoryImages: data.category_images || localSavedSettings.categoryImages || {
+      'Panadería': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
+      'Lácteos': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800',
+      'Embutidos': 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800',
+      'Miel y Dulces': 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800',
+      'Papa Nativa': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800',
+    },
     updatedAt: data.updated_at,
   };
 };
@@ -929,6 +941,7 @@ export const dbUpsertStoreSettings = async (
     hero_image_1: cleanDirectImageUrl(settings.heroImage1 || ''),
     hero_image_2: cleanDirectImageUrl(settings.heroImage2 || ''),
     hero_image_3: cleanDirectImageUrl(settings.heroImage3 || ''),
+    category_images: settings.categoryImages || {},
     updated_at: new Date().toISOString(),
   };
 

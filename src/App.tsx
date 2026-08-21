@@ -566,6 +566,7 @@ export default function App() {
             <SectionHeader title="Categorías" />
             <CategoriesGrid
               products={products}
+              categoryImages={storeSettings?.categoryImages}
               onSelectCategory={(cat) => {
                 setSelectedCategory(cat);
                 handleScrollToCatalog();

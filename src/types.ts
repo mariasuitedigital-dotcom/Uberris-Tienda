@@ -150,6 +150,7 @@ export interface StoreSettings {
   heroImage1?: string;
   heroImage2?: string;
   heroImage3?: string;
+  categoryImages?: Record<string, string>;
   updatedAt?: string;
 }
 

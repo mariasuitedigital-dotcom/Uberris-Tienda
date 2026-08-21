@@ -468,6 +468,21 @@ export const AdminPanel: React.FC<Props> = ({
     });
   };
 
+  const handleCategoryImageFileUpload = (catId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    compressImageFile(file, 900, 0.88, (compressedUrl) => {
+      setEditingSettings((prev) => ({
+        ...prev,
+        categoryImages: {
+          ...(prev.categoryImages || {}),
+          [catId]: compressedUrl
+        }
+      }));
+      onShowToast('Imagen de Categoría Cargada', `Se cargó la foto para "${catId}". Presiona "Guardar y Sincronizar Cambios" para aplicarla.`, 'success');
+    });
+  };
+
   const handleProductImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -3527,6 +3542,104 @@ export const AdminPanel: React.FC<Props> = ({
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Category Card Images Management Section */}
+                  <div className="md:col-span-2 pt-5 border-t border-dashed border-emerald-500/20 space-y-4">
+                    <div>
+                      <h4 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                        🖼️ Fotos de las Tarjetas de Categorías
+                      </h4>
+                      <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Cambia las fotos que aparecen en las tarjetas principales de la tienda (Panadería, Lácteos, Embutidos, Miel y Dulces, Papa Nativa).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[
+                        { id: 'Panadería', name: 'Panadería Artesanal', defaultUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Lácteos', name: 'Quesería & Lácteos', defaultUrl: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Embutidos', name: 'Embutidos & Carnes', defaultUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Miel y Dulces', name: 'Miel & Dulces', defaultUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Papa Nativa', name: 'Papa Nativa', defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800' },
+                      ].map((catItem) => {
+                        const currentUrl = editingSettings.categoryImages?.[catItem.id] || '';
+                        const displayUrl = cleanDirectImageUrl(currentUrl) || catItem.defaultUrl;
+
+                        return (
+                          <div
+                            key={catItem.id}
+                            className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-emerald-500">{catItem.name}</span>
+                              <span className="text-[10px] text-slate-400">Categoría</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
+                                <img
+                                  src={displayUrl}
+                                  alt={catItem.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = catItem.defaultUrl;
+                                  }}
+                                />
+                              </div>
+
+                              <div className="flex-1 space-y-1.5">
+                                <input
+                                  type="text"
+                                  placeholder="URL de imagen (https://...)"
+                                  value={currentUrl}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditingSettings((prev) => ({
+                                      ...prev,
+                                      categoryImages: {
+                                        ...(prev.categoryImages || {}),
+                                        [catItem.id]: val
+                                      }
+                                    }));
+                                  }}
+                                  className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                  }`}
+                                />
+                                <div className="flex items-center gap-1.5">
+                                  <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                    <Upload className="w-3 h-3" />
+                                    <span>Subir Foto</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => handleCategoryImageFileUpload(catItem.id, e)}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  {currentUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingSettings((prev) => {
+                                          const updated = { ...(prev.categoryImages || {}) };
+                                          delete updated[catItem.id];
+                                          return { ...prev, categoryImages: updated };
+                                        });
+                                      }}
+                                      className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                    >
+                                      Restablecer
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
