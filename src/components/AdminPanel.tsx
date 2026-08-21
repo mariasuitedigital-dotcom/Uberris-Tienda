@@ -855,6 +855,15 @@ export const AdminPanel: React.FC<Props> = ({
 
             {/* Top Quick Actions */}
             <div className="flex items-center gap-1.5 shrink-0 no-print">
+              <button
+                onClick={openNewProductModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="Crear un nuevo producto en el catálogo"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="inline">Nuevo Producto</span>
+              </button>
+
               {onOpenSupabaseModal && (
                 <button
                   onClick={onOpenSupabaseModal}
@@ -884,7 +893,7 @@ export const AdminPanel: React.FC<Props> = ({
 
               <button
                 onClick={handleCopyHojaHorno}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white text-xs font-bold transition-all shadow-xs active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold transition-all shadow-xs active:scale-95"
                 title="Copiar resumen para WhatsApp"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -973,7 +982,7 @@ export const AdminPanel: React.FC<Props> = ({
               )}
             </button>
 
-            {/* Tab 4: Redes Sociales & Pie de Página */}
+            {/* Tab 4: Redes, Banners & Garantías */}
             <button
               onClick={() => setActiveMainTab('redes')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
@@ -985,7 +994,7 @@ export const AdminPanel: React.FC<Props> = ({
               }`}
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>4. Redes Sociales & Pie de Página</span>
+              <span>4. Redes, Banners & Garantías</span>
             </button>
 
           </div>
@@ -2358,11 +2367,11 @@ export const AdminPanel: React.FC<Props> = ({
                       <Share2 className="w-4 h-4" />
                     </div>
                     <h2 className="font-serif-craft text-lg sm:text-xl font-bold">
-                      Redes Sociales & Pie de Página
+                      Configuración de Tienda, Garantías & Pie de Página
                     </h2>
                   </div>
                   <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Administra el número telefónico de la empresa, enlaces de TikTok, Facebook, Instagram, dirección y horarios.
+                    Administra las garantías de calidad, textos del banner principal, teléfono de contacto, enlaces sociales (TikTok, FB, IG), dirección y horarios.
                   </p>
                 </div>
 
@@ -3128,6 +3137,121 @@ export const AdminPanel: React.FC<Props> = ({
                         />
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Garantías de Calidad, Sello de Origen & Banner Principal */}
+              <div className={`p-4 sm:p-6 rounded-2xl border ${
+                isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-500/15">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <div>
+                    <h3 className="font-serif-craft text-base sm:text-lg font-bold">
+                      5. Garantías de Calidad, Sello de Origen & Banner Principal
+                    </h3>
+                    <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Modifica los sellos distintivos que aparecen en la vista rápida de productos y los textos del banner principal de portada.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Guarantee Badge 1 */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      🔥 Garantía / Sello 1 (Vista Rápida de Productos)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Horno tradicional a leña de piedra andina"
+                      value={editingSettings.guaranteeBadge1 || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, guaranteeBadge1: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Guarantee Badge 2 */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      🛡️ Garantía / Sello 2 (Vista Rápida de Productos)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Insumos 100% ecológicos de pequeños productores"
+                      value={editingSettings.guaranteeBadge2 || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, guaranteeBadge2: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Origin Location Text */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      📍 Ubicación de Origen (Etiqueta sobre la foto del producto)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Valle de Apurímac (Abancay - Andahuaylas)"
+                      value={editingSettings.originLocationText || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, originLocationText: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Hero Tag */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      🏷️ Etiqueta del Banner Principal
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Apurímac en tu Mesa"
+                      value={editingSettings.heroTag || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, heroTag: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Hero Title */}
+                  <div className="space-y-1.5">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      ✨ Título Principal del Banner
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Sabores de Origen"
+                      value={editingSettings.heroTitle || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, heroTitle: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Hero Subtitle */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className={`text-xs font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      📝 Subtítulo del Banner Principal
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="productos naturales y bebidas con el sabor auténtico de los andes."
+                      value={editingSettings.heroSubtitle || ''}
+                      onChange={(e) => setEditingSettings({ ...editingSettings, heroSubtitle: e.target.value })}
+                      className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
+                        isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
