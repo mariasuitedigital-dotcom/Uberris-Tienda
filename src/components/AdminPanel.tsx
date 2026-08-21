@@ -958,19 +958,19 @@ export const AdminPanel: React.FC<Props> = ({
               )}
             </button>
 
-            {/* Tab 3: Inventario & Catálogo de Productos */}
+            {/* Tab 3: Crear & Editar Productos (Inventario) */}
             <button
               onClick={() => setActiveMainTab('inventario')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 border ${
                 activeMainTab === 'inventario'
-                  ? 'bg-[#60b64d] text-white shadow-sm'
+                  ? 'bg-[#60b64d] text-white border-[#60b64d] shadow-sm'
                   : isDarkMode
-                  ? 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/20 hover:text-white hover:bg-emerald-900/40'
+                  : 'text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
               }`}
             >
-              <Boxes className="w-3.5 h-3.5" />
-              <span>3. Inventario & Catálogo ({products.length})</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>3. CREAR Y EDITAR PRODUCTOS ({products.length})</span>
               {outOfStockOrLowCount > 0 && (
                 <span
                   className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse shadow-xs"
@@ -982,19 +982,19 @@ export const AdminPanel: React.FC<Props> = ({
               )}
             </button>
 
-            {/* Tab 4: Redes, Banners & Garantías */}
+            {/* Tab 4: Modificar Textos, Banners & Garantías */}
             <button
               onClick={() => setActiveMainTab('redes')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 border ${
                 activeMainTab === 'redes'
-                  ? 'bg-[#60b64d] text-white shadow-sm'
+                  ? 'bg-[#60b64d] text-white border-[#60b64d] shadow-sm'
                   : isDarkMode
-                  ? 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'text-amber-300 border-amber-500/30 bg-amber-950/20 hover:text-white hover:bg-amber-900/40'
+                  : 'text-amber-800 border-amber-200 bg-amber-50 hover:bg-amber-100'
               }`}
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>4. Redes, Banners & Garantías</span>
+              <Settings className="w-3.5 h-3.5" />
+              <span>4. MODIFICAR TEXTOS, BANNERS & GARANTÍAS</span>
             </button>
 
           </div>
@@ -3700,6 +3700,18 @@ export const AdminPanel: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Floating Action Button for Quick Product Creation */}
+      <div className="fixed bottom-5 right-5 z-40 no-print flex items-center gap-2">
+        <button
+          onClick={openNewProductModal}
+          className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#60b64d] hover:bg-[#50a040] text-white text-sm font-extrabold shadow-2xl active:scale-95 transition-all border border-white/20 cursor-pointer animate-bounce"
+          title="Crear un nuevo producto en el catálogo"
+        >
+          <Plus className="w-5 h-5 stroke-[3]" />
+          <span>+ CREAR NUEVO PRODUCTO</span>
+        </button>
+      </div>
 
     </div>
   );
