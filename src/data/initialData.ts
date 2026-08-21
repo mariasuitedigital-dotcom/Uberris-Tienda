@@ -378,7 +378,9 @@ export const INITIAL_MOVEMENTS: InventoryMovement[] = [
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   id: 'main_store',
   businessName: 'Uberris del Valle',
-  tagline: 'Panadería Tradicional & Sabores de Apurímac',
+  tagline: 'Panadería & Delicias de Apurímac',
+  footerBio: 'Llevamos el sabor inconfundible del Pan Chapla tradicional, panes andinos y productos del valle apurimeño directo a tu mesa familiar.',
+  footerShippingInfo: 'Despachamos por agencias de transporte confiables (Palomino, Shalom, Mariscal Cáceres, Molina) con empaque sellado para conservar la frescura.',
   phone: '+51 983 746 281',
   whatsappPhone: '51983746281',
   email: 'pedidos@uberrisdelvalle.com',
@@ -400,5 +402,15 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   bankAccountCci: '00219100123456780123',
   bankAccountName: 'Uberris del Valle EIRL',
   announcementBanner: '🌱 Hornadas frescas diarias con trigo andino de Apurímac. Envíos directos a Abancay, Andahuaylas, Cusco y Lima.',
+  showTiktok: true,
+  showFacebook: true,
+  showInstagram: true,
+  showWhatsapp: true,
+  showPhone: true,
+  showEmail: true,
+  showAddress: true,
+  showHours: true,
+  showShippingInfo: true,
+  showPaymentBadges: true,
 };
 

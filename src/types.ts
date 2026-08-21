@@ -103,6 +103,8 @@ export interface StoreSettings {
   id: string;
   businessName: string;
   tagline: string;
+  footerBio?: string;
+  footerShippingInfo?: string;
   phone: string;
   whatsappPhone: string;
   email: string;
@@ -124,6 +126,17 @@ export interface StoreSettings {
   bankAccountCci?: string;
   bankAccountName?: string;
   announcementBanner: string;
+  // Visibility switches
+  showTiktok?: boolean;
+  showFacebook?: boolean;
+  showInstagram?: boolean;
+  showWhatsapp?: boolean;
+  showPhone?: boolean;
+  showEmail?: boolean;
+  showAddress?: boolean;
+  showHours?: boolean;
+  showShippingInfo?: boolean;
+  showPaymentBadges?: boolean;
   updatedAt?: string;
 }
 
