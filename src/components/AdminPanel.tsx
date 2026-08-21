@@ -75,6 +75,26 @@ interface Props {
   isDarkMode: boolean;
 }
 
+export const cleanDirectImageUrl = (url: string): string => {
+  if (!url) return '';
+  let cleaned = url.trim();
+
+  // Convert Google Drive view/share link -> direct image link
+  if (cleaned.includes('drive.google.com/file/d/')) {
+    const match = cleaned.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+  }
+
+  // Convert Dropbox share link -> direct image link
+  if (cleaned.includes('dropbox.com/') && cleaned.includes('dl=0')) {
+    return cleaned.replace('dl=0', 'raw=1');
+  }
+
+  return cleaned;
+};
+
 export const AdminPanel: React.FC<Props> = ({
   products,
   orders,
@@ -812,6 +832,15 @@ export const AdminPanel: React.FC<Props> = ({
       return;
     }
 
+    const determinedStockType: 'con_stock' | 'a_producir' =
+      editingProduct.stockType ||
+      ((editingProduct.stock && Number(editingProduct.stock) > 0) ? 'con_stock' : 'a_producir');
+
+    const finalStock =
+      determinedStockType === 'con_stock'
+        ? Math.max(0, Number(editingProduct.stock) || 0)
+        : (Number(editingProduct.stock) || 0);
+
     // Auto-clean and resolve direct URL
     const cleanedImg = cleanDirectImageUrl(editingProduct.image || '');
     const productToSave: Product = {
@@ -825,9 +854,9 @@ export const AdminPanel: React.FC<Props> = ({
       category: editingProduct.category || 'Panadería',
       image: cleanedImg || editingProduct.image || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
       available: editingProduct.available !== false,
-      stockType: editingProduct.stockType || 'a_producir',
-      stock: editingProduct.stockType === 'con_stock' ? Math.max(0, Number(editingProduct.stock) || 0) : 0,
-      badge: editingProduct.badge || 'Artesanal',
+      stockType: determinedStockType,
+      stock: finalStock,
+      badge: (editingProduct.badge as any) || 'Artesanal',
       rawRecipe: editingProduct.rawRecipe || [],
     };
 
@@ -3657,8 +3686,14 @@ export const AdminPanel: React.FC<Props> = ({
                     value={editingProduct.image || ''}
                     onChange={(e) => {
                       const val = e.target.value;
+                      setEditingProduct({ ...editingProduct, image: val });
+                    }}
+                    onBlur={(e) => {
+                      const val = e.target.value;
                       const cleaned = cleanDirectImageUrl(val);
-                      setEditingProduct({ ...editingProduct, image: cleaned });
+                      if (cleaned !== val) {
+                        setEditingProduct({ ...editingProduct, image: cleaned });
+                      }
                     }}
                     className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${
                       isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'

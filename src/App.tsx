@@ -109,12 +109,12 @@ export default function App() {
       if (dbProds && dbProds.length > 0) {
         setProducts((prevLocal) => {
           const map = new Map<string, Product>();
-          // 1. Put Supabase products
-          dbProds.forEach((p) => map.set(p.id, p));
-          // 2. Keep local products if not in Supabase yet (unsynced local creations)
-          prevLocal.forEach((lp) => {
-            if (!map.has(lp.id)) {
-              map.set(lp.id, lp);
+          // 1. Local products first (preserves user edits and local creations)
+          prevLocal.forEach((lp) => map.set(lp.id, lp));
+          // 2. Add Supabase products only if not present locally
+          dbProds.forEach((p) => {
+            if (!map.has(p.id)) {
+              map.set(p.id, p);
             }
           });
           const merged = Array.from(map.values());
@@ -147,10 +147,12 @@ export default function App() {
           if (prods && prods.length > 0) {
             setProducts((prevLocal) => {
               const map = new Map<string, Product>();
-              prods.forEach((p) => map.set(p.id, p));
-              prevLocal.forEach((lp) => {
-                if (!map.has(lp.id)) {
-                  map.set(lp.id, lp);
+              // 1. Local products first (preserves user edits and local creations)
+              prevLocal.forEach((lp) => map.set(lp.id, lp));
+              // 2. Add Supabase products only if not present locally
+              prods.forEach((p) => {
+                if (!map.has(p.id)) {
+                  map.set(p.id, p);
                 }
               });
               const merged = Array.from(map.values());
