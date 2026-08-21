@@ -17,8 +17,13 @@ export const ProductCard: React.FC<Props> = ({
 }) => {
   const [quantity, setQuantity] = React.useState(1);
 
+  // A product is out of stock if disabled or if it tracks stock and stock is 0 or less
+  const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
+  const maxStock = product.stockType === 'con_stock' ? product.stock : 999;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStock) return;
     onAddToCart(product, quantity);
     setQuantity(1); // reset to 1 after adding
   };
@@ -27,6 +32,8 @@ export const ProductCard: React.FC<Props> = ({
     <div
       onClick={() => onQuickView(product)}
       className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 flex flex-col justify-between cursor-pointer ${
+        isOutOfStock ? 'opacity-75 grayscale-[20%]' : ''
+      } ${
         isDarkMode
           ? 'bg-[#0d1712] border-[#1c3326] text-slate-100 hover:border-[#60b64d]/60 hover:shadow-lg hover:shadow-[#60b64d]/10'
           : 'bg-white border-slate-200 text-slate-900 shadow-xs hover:border-[#60b64d] hover:shadow-md'
@@ -44,12 +51,16 @@ export const ProductCard: React.FC<Props> = ({
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
 
-        {/* Badge tag */}
-        {product.badge && (
+        {/* Out of Stock Badge */}
+        {isOutOfStock ? (
+          <span className="absolute top-2 left-2 px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase rounded-full bg-rose-600 text-white shadow-md">
+            Agotado
+          </span>
+        ) : product.badge ? (
           <span className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded-full bg-[#60b64d] text-white shadow-md">
             {product.badge}
           </span>
-        )}
+        ) : null}
 
         {/* Category tag */}
         <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[9px] font-semibold rounded-md bg-black/60 backdrop-blur-xs text-emerald-300 border border-white/10 hidden sm:block">
@@ -105,37 +116,50 @@ export const ProductCard: React.FC<Props> = ({
             </div>
 
             {/* Quantity Selector */}
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              className={`flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-xl border ${
-                isDarkMode ? 'border-[#1c3326] bg-[#08100c]' : 'border-slate-200 bg-slate-50'
-              }`}
-            >
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#60b64d] hover:bg-[#60b64d]/10 transition-colors"
-                aria-label="Restar una unidad"
+            {!isOutOfStock && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className={`flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-xl border ${
+                  isDarkMode ? 'border-[#1c3326] bg-[#08100c]' : 'border-slate-200 bg-slate-50'
+                }`}
               >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <span className="w-4 sm:w-6 text-center text-xs font-bold">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#60b64d] hover:bg-[#60b64d]/10 transition-colors"
-                aria-label="Sumar una unidad"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#60b64d] hover:bg-[#60b64d]/10 transition-colors"
+                  aria-label="Restar una unidad"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-4 sm:w-6 text-center text-xs font-bold">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(Math.min(maxStock, quantity + 1))}
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#60b64d] hover:bg-[#60b64d]/10 transition-colors"
+                  aria-label="Sumar una unidad"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-semibold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm shadow-[#60b64d]/20 active:scale-[0.98] transition-all"
+            disabled={isOutOfStock}
+            className={`w-full py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl font-semibold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
+              isOutOfStock
+                ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
+                : 'bg-[#60b64d] hover:bg-[#50a040] text-white shadow-sm shadow-[#60b64d]/20 active:scale-[0.98]'
+            }`}
           >
-            <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Agregar</span>
+            {isOutOfStock ? (
+              <span>Agotado</span>
+            ) : (
+              <>
+                <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Agregar</span>
+              </>
+            )}
           </button>
         </div>
       </div>

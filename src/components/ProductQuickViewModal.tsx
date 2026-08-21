@@ -23,7 +23,11 @@ export const ProductQuickViewModal: React.FC<Props> = ({
 
   if (!product) return null;
 
+  const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
+  const maxStock = product.stockType === 'con_stock' ? product.stock : 999;
+
   const handleAdd = () => {
+    if (isOutOfStock) return;
     onAddToCart(product, quantity);
     onClose();
   };
@@ -113,31 +117,44 @@ export const ProductQuickViewModal: React.FC<Props> = ({
                 </div>
 
                 {/* Quantity Controls */}
-                <div className="flex items-center gap-1.5 sm:gap-2 border border-[#60b64d]/30 rounded-xl p-0.5 sm:p-1 bg-black/10">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-1 sm:p-1.5 rounded-lg hover:bg-[#60b64d]/20 transition-colors text-[#60b64d]"
-                    aria-label="Disminuir cantidad"
-                  >
-                    <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                  <span className="w-6 sm:w-8 text-center font-bold text-xs sm:text-sm">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-1 sm:p-1.5 rounded-lg hover:bg-[#60b64d]/20 transition-colors text-[#60b64d]"
-                    aria-label="Aumentar cantidad"
-                  >
-                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
+                {!isOutOfStock && (
+                  <div className="flex items-center gap-1.5 sm:gap-2 border border-[#60b64d]/30 rounded-xl p-0.5 sm:p-1 bg-black/10">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="p-1 sm:p-1.5 rounded-lg hover:bg-[#60b64d]/20 transition-colors text-[#60b64d]"
+                      aria-label="Disminuir cantidad"
+                    >
+                      <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                    <span className="w-6 sm:w-8 text-center font-bold text-xs sm:text-sm">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(Math.min(maxStock, quantity + 1))}
+                      className="p-1 sm:p-1.5 rounded-lg hover:bg-[#60b64d]/20 transition-colors text-[#60b64d]"
+                      aria-label="Aumentar cantidad"
+                    >
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
                 onClick={handleAdd}
-                className="w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-[#60b64d] to-[#50a040] hover:brightness-105 text-white font-semibold flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-[#60b64d]/25 transition-all text-xs sm:text-sm"
+                disabled={isOutOfStock}
+                className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all text-xs sm:text-sm ${
+                  isOutOfStock
+                    ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#60b64d] to-[#50a040] hover:brightness-105 text-white shadow-lg shadow-[#60b64d]/25 cursor-pointer'
+                }`}
               >
-                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Agregar al Pedido</span>
+                {isOutOfStock ? (
+                  <span>Producto Agotado</span>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Agregar al Pedido</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

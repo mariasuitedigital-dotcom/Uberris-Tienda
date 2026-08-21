@@ -17,7 +17,8 @@ export interface Product {
   category: ProductCategory;
   image: string;
   available: boolean;
-  stock: number;
+  stockType?: 'con_stock' | 'a_producir'; // 'con_stock' = stock limitado / físico; 'a_producir' = bajo demanda / sin límite
+  stock: number; // For 'con_stock', units available
   badge?: 'Más Vendido' | 'Artesanal' | 'Superfood' | 'Nativo' | 'Orgánico' | 'Especialidad';
   rawRecipe?: ProductRecipeItem[];
 }

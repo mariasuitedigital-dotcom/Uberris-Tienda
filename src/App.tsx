@@ -187,55 +187,25 @@ export default function App() {
     setCart([]);
   };
 
-  // --- SUBMIT ORDER & AUTO DEDUCT RAW INVENTORY ---
+  // --- SUBMIT ORDER & UPDATE PRODUCT INVENTORY ---
   const handleSubmitOrder = (newOrder: Order) => {
     // 1. Save new order
     setOrders((prev) => [newOrder, ...prev]);
 
-    // 2. Deduct raw supplies based on recipe
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    const newMovements: InventoryMovement[] = [];
-
-    setSupplies((prevSupplies) => {
-      let updatedSupplies = [...prevSupplies];
-
-      newOrder.items.forEach((orderItem) => {
-        const product = products.find((p) => p.id === orderItem.productId);
-        if (product && product.rawRecipe) {
-          product.rawRecipe.forEach((recipe) => {
-            const totalRequired = recipe.amountPerPackage * orderItem.quantity;
-            
-            // Deduct stock
-            updatedSupplies = updatedSupplies.map((s) => {
-              if (s.id === recipe.supplyId) {
-                const newStock = Math.max(0, Number((s.stock - totalRequired).toFixed(2)));
-                
-                // Record movement log
-                newMovements.push({
-                  id: `MOV-${Math.floor(1000 + Math.random() * 9000)}`,
-                  supplyId: s.id,
-                  supplyName: s.name,
-                  type: 'venta_automatica',
-                  amount: -Number(totalRequired.toFixed(2)),
-                  unit: s.unit,
-                  date: nowStr,
-                  referenceOrder: newOrder.id,
-                });
-
-                return { ...s, stock: newStock };
-              }
-              return s;
-            });
-          });
+    // 2. Automatically deduct finished product stock for products with physical stock (con_stock)
+    setProducts((prevProducts) => {
+      return prevProducts.map((p) => {
+        const orderItem = newOrder.items.find((item) => item.productId === p.id);
+        if (orderItem && p.stockType === 'con_stock') {
+          const newStock = Math.max(0, (p.stock || 0) - orderItem.quantity);
+          return {
+            ...p,
+            stock: newStock,
+          };
         }
+        return p;
       });
-
-      return updatedSupplies;
     });
-
-    if (newMovements.length > 0) {
-      setMovements((prev) => [...newMovements, ...prev]);
-    }
 
     showToast(
       '¡Pedido Confirmado!',
@@ -265,6 +235,11 @@ export default function App() {
       }
       return [updatedProduct, ...prev];
     });
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    showToast('Producto Eliminado', 'El producto ha sido retirado del inventario.', 'info');
   };
 
   const handleAddSupplyStock = (supplyId: string, addedAmount: number) => {
@@ -330,6 +305,7 @@ export default function App() {
         currentView={currentView}
         onViewChange={setCurrentView}
         pendingOrdersCount={pendingOrdersCount}
+        onOpenAdminAuth={() => setIsAdminAuthOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -456,6 +432,7 @@ export default function App() {
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onDeleteOrder={handleDeleteOrder}
           onSaveProduct={handleSaveProduct}
+          onDeleteProduct={handleDeleteProduct}
           onAddSupplyStock={handleAddSupplyStock}
           onShowToast={showToast}
           isDarkMode={isDarkMode}
@@ -498,6 +475,8 @@ export default function App() {
           cartCount={totalCartCount}
           onCartOpen={() => setIsCartOpen(true)}
           isDarkMode={isDarkMode}
+          onOpenAdmin={() => setIsAdminAuthOpen(true)}
+          pendingOrdersCount={pendingOrdersCount}
         />
       )}
 

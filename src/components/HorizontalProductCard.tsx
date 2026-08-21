@@ -18,12 +18,16 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
   onQuickView,
   isDarkMode
 }) => {
+  const isOutOfStock = product.available === false || (product.stockType === 'con_stock' && product.stock <= 0);
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
       onClick={() => onQuickView(product)}
       className={`min-w-[185px] w-[185px] sm:min-w-[230px] sm:w-[230px] shrink-0 rounded-3xl overflow-hidden border flex flex-col justify-between cursor-pointer transition-all duration-300 shadow-xs hover:shadow-xl ${
+        isOutOfStock ? 'opacity-75 grayscale-[20%]' : ''
+      } ${
         isDarkMode
           ? 'bg-[#0d1611]/60 border-[#1c3326]/70 hover:border-[#60b64d]/40'
           : 'bg-white border-slate-100 hover:border-emerald-100'
@@ -37,20 +41,22 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
         />
 
-        {/* Badge: MÁS PEDIDO or PROMO */}
-        {badgeType === 'popular' && (
+        {/* Badge: AGOTADO or MÁS PEDIDO or PROMO */}
+        {isOutOfStock ? (
+          <span className="absolute top-2 left-2 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center shadow-md">
+            AGOTADO
+          </span>
+        ) : badgeType === 'popular' ? (
           <span className="absolute top-2 left-2 bg-amber-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
             <Flame className="w-2.5 h-2.5 fill-slate-950" />
             MÁS PEDIDO
           </span>
-        )}
-
-        {badgeType === 'promo' && (
+        ) : badgeType === 'promo' ? (
           <span className="absolute top-2 left-2 bg-[#60b64d] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
             <Sparkles className="w-2.5 h-2.5" />
             PROMO
           </span>
-        )}
+        ) : null}
 
         {/* Subtle quick action button on top-right */}
         <button
@@ -90,10 +96,16 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              if (isOutOfStock) return;
               onAddToCart(product, 1);
             }}
-            className="w-8 h-8 shrink-0 rounded-full bg-[#60b64d]/15 hover:bg-[#60b64d] text-[#60b64d] hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-90"
-            title="Agregar al pedido"
+            disabled={isOutOfStock}
+            className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-all shadow-xs ${
+              isOutOfStock
+                ? 'bg-slate-700/40 text-slate-500 cursor-not-allowed'
+                : 'bg-[#60b64d]/15 hover:bg-[#60b64d] text-[#60b64d] hover:text-white cursor-pointer active:scale-90'
+            }`}
+            title={isOutOfStock ? 'Producto Agotado' : 'Agregar al pedido'}
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
           </button>

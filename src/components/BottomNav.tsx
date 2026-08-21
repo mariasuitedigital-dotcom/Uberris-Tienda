@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, UtensilsCrossed, Heart, ShoppingBag } from 'lucide-react';
+import { Home, UtensilsCrossed, ShieldCheck, ShoppingBag } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: 'inicio' | 'catalogo';
@@ -7,6 +7,8 @@ interface BottomNavProps {
   cartCount: number;
   onCartOpen: () => void;
   isDarkMode: boolean;
+  onOpenAdmin: () => void;
+  pendingOrdersCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -14,14 +16,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   setActiveTab,
   cartCount,
   onCartOpen,
-  isDarkMode
+  isDarkMode,
+  onOpenAdmin,
+  pendingOrdersCount = 0
 }) => {
   return (
     <nav aria-label="Navegación móvil" className="md:hidden fixed bottom-0 left-0 right-0 z-40 p-3 pointer-events-none">
-      <div className={`max-w-md mx-auto pointer-events-auto rounded-full shadow-2xl border backdrop-blur-lg px-6 py-2.5 flex items-center justify-between ${
+      <div className={`max-w-md mx-auto pointer-events-auto rounded-full shadow-2xl border backdrop-blur-lg px-5 py-2 flex items-center justify-between ${
         isDarkMode
-          ? 'bg-[#080f0c]/90 border-[#1c3326] text-slate-200'
-          : 'bg-white/90 border-slate-200 text-slate-700 shadow-slate-200/50'
+          ? 'bg-[#080f0c]/95 border-[#1c3326] text-slate-200'
+          : 'bg-white/95 border-slate-200 text-slate-700 shadow-slate-200/50'
       }`}>
         {/* Inicio */}
         <button
@@ -52,18 +56,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span>Catálogo</span>
         </button>
 
-        {/* Favoritos / Pedidos */}
-        <button
-          onClick={() => {
-            const el = document.getElementById('catalogo-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-[#60b64d] transition-colors"
-        >
-          <Heart className="w-5 h-5" />
-          <span>Favoritos</span>
-        </button>
-
         {/* Carrito */}
         <button
           onClick={onCartOpen}
@@ -78,6 +70,22 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             )}
           </div>
           <span>Carrito</span>
+        </button>
+
+        {/* Admin / Hornada */}
+        <button
+          onClick={onOpenAdmin}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-amber-400 relative transition-colors"
+        >
+          <div className="relative">
+            <ShieldCheck className="w-5 h-5 text-amber-500" />
+            {pendingOrdersCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-amber-500 text-slate-950 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-extrabold">
+                {pendingOrdersCount}
+              </span>
+            )}
+          </div>
+          <span className="text-amber-600 dark:text-amber-400">Admin</span>
         </button>
       </div>
     </nav>

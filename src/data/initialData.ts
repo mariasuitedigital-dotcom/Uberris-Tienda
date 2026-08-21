@@ -86,14 +86,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Panadería',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
     available: true,
-    stock: 80,
+    stockType: 'a_producir',
+    stock: 0,
     badge: 'Más Vendido',
-    rawRecipe: [
-      { supplyId: 'SUP-01', amountPerPackage: 0.25 }, // 250g harina per pkg of 5
-      { supplyId: 'SUP-04', amountPerPackage: 0.04 }, // 40g manteca
-      { supplyId: 'SUP-05', amountPerPackage: 0.01 }, // 10g anís
-      { supplyId: 'SUP-07', amountPerPackage: 1 },    // 1 bolsa kraft
-    ],
   },
   {
     id: 'PROD-02',
@@ -105,13 +100,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Panadería',
     image: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&q=80&w=800',
     available: true,
-    stock: 50,
+    stockType: 'a_producir',
+    stock: 0,
     badge: 'Artesanal',
-    rawRecipe: [
-      { supplyId: 'SUP-01', amountPerPackage: 0.30 },
-      { supplyId: 'SUP-06', amountPerPackage: 0.015 },
-      { supplyId: 'SUP-07', amountPerPackage: 1 },
-    ],
   },
   {
     id: 'PROD-03',
@@ -123,13 +114,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Panadería',
     image: 'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&q=80&w=800',
     available: true,
-    stock: 40,
+    stockType: 'a_producir',
+    stock: 0,
     badge: 'Superfood',
-    rawRecipe: [
-      { supplyId: 'SUP-02', amountPerPackage: 0.20 },
-      { supplyId: 'SUP-01', amountPerPackage: 0.10 },
-      { supplyId: 'SUP-07', amountPerPackage: 1 },
-    ],
   },
   {
     id: 'PROD-04',
@@ -141,11 +128,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Lácteos',
     image: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 25,
     badge: 'Artesanal',
-    rawRecipe: [
-      { supplyId: 'SUP-03', amountPerPackage: 5.0 }, // 5 litros leche per 500g
-    ],
   },
   {
     id: 'PROD-05',
@@ -157,11 +142,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Lácteos',
     image: 'https://images.unsplash.com/photo-1552767059-ce182ead8c1b?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 30,
     badge: 'Más Vendido',
-    rawRecipe: [
-      { supplyId: 'SUP-03', amountPerPackage: 4.0 },
-    ],
   },
   {
     id: 'PROD-06',
@@ -173,11 +156,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Lácteos',
     image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 20,
     badge: 'Artesanal',
-    rawRecipe: [
-      { supplyId: 'SUP-03', amountPerPackage: 3.5 },
-    ],
   },
   {
     id: 'PROD-07',
@@ -189,6 +170,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Embutidos',
     image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 15,
     badge: 'Especialidad',
   },
@@ -202,11 +184,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Miel y Dulces',
     image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 18,
     badge: 'Orgánico',
-    rawRecipe: [
-      { supplyId: 'SUP-08', amountPerPackage: 1 },
-    ],
   },
   {
     id: 'PROD-09',
@@ -218,11 +198,9 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Miel y Dulces',
     image: 'https://images.unsplash.com/photo-1579372786545-d24232daf58c?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 22,
     badge: 'Artesanal',
-    rawRecipe: [
-      { supplyId: 'SUP-03', amountPerPackage: 2.5 },
-    ],
   },
   {
     id: 'PROD-10',
@@ -234,6 +212,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Papa Nativa',
     image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800',
     available: true,
+    stockType: 'con_stock',
     stock: 35,
     badge: 'Nativo',
   },

@@ -14,6 +14,7 @@ interface Props {
   currentView: 'catalog' | 'admin';
   onViewChange: (view: 'catalog' | 'admin') => void;
   pendingOrdersCount: number;
+  onOpenAdminAuth: () => void;
 }
 
 const CATEGORIES: (ProductCategory | 'Todos')[] = [
@@ -37,6 +38,7 @@ export const Header: React.FC<Props> = ({
   currentView,
   onViewChange,
   pendingOrdersCount,
+  onOpenAdminAuth,
 }) => {
   return (
     <header className={`sticky top-0 z-40 backdrop-blur-md transition-colors border-b ${
@@ -98,13 +100,32 @@ export const Header: React.FC<Props> = ({
           {/* Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* View Switcher: Admin back to Catalog */}
-            {currentView === 'admin' && (
+            {currentView === 'admin' ? (
               <button
                 onClick={() => onViewChange('catalog')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border bg-[#60b64d] text-white border-[#60b64d] shadow-md shadow-[#60b64d]/20`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border bg-[#60b64d] text-white border-[#60b64d] shadow-md shadow-[#60b64d]/20 hover:brightness-105 active:scale-95"
               >
                 <Store className="w-4 h-4" />
-                <span>Ver Catálogo</span>
+                <span className="hidden sm:inline">Ver Catálogo</span>
+                <span className="sm:hidden">Catálogo</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAdminAuth}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                  isDarkMode
+                    ? 'bg-[#0d1712] border-[#1c3326] text-amber-300 hover:border-amber-500/50 hover:bg-amber-500/10'
+                    : 'bg-white border-slate-200 text-slate-800 hover:border-[#60b64d] hover:text-[#60b64d] shadow-2xs'
+                }`}
+                title="Acceso Administrativo (Panadería & Pedidos)"
+              >
+                <LayoutDashboard className="w-4 h-4 text-[#60b64d]" />
+                <span className="hidden sm:inline">Admin</span>
+                {pendingOrdersCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px]">
+                    {pendingOrdersCount}
+                  </span>
+                )}
               </button>
             )}
 
@@ -137,21 +158,23 @@ export const Header: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Mobile Search Input */}
-        <div className="mt-2.5 md:hidden relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar productos artesanales..."
-            className={`w-full pl-9 pr-4 py-2 text-xs rounded-lg border focus:outline-none ${
-              isDarkMode
-                ? 'bg-[#0d1712] border-[#1c3326] text-slate-200 placeholder-slate-500 focus:border-[#60b64d]'
-                : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:border-[#60b64d]'
-            }`}
-          />
-        </div>
+        {/* Mobile Search Input (Catalog View only) */}
+        {currentView === 'catalog' && (
+          <div className="mt-2.5 md:hidden relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Buscar productos artesanales..."
+              className={`w-full pl-9 pr-4 py-2 text-xs rounded-lg border focus:outline-none ${
+                isDarkMode
+                  ? 'bg-[#0d1712] border-[#1c3326] text-slate-200 placeholder-slate-500 focus:border-[#60b64d]'
+                  : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:border-[#60b64d]'
+              }`}
+            />
+          </div>
+        )}
       </div>
     </header>
   );
