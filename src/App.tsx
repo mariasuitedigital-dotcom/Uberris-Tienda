@@ -70,7 +70,10 @@ export default function App() {
   }, [isDarkMode]);
 
   // 2. View Mode State ('catalog' | 'admin')
-  const [currentView, setCurrentView] = useState<'catalog' | 'admin'>('catalog');
+  const [currentView, setCurrentView] = useState<'catalog' | 'admin'>(() => {
+    const saved = localStorage.getItem('uberris_admin_auth');
+    return saved === 'true' ? 'admin' : 'catalog';
+  });
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
@@ -622,6 +625,7 @@ export default function App() {
         onClose={() => setIsAdminAuthOpen(false)}
         onSuccess={() => {
           setIsAdminAuthOpen(false);
+          localStorage.setItem('uberris_admin_auth', 'true');
           setCurrentView('admin');
         }}
         isDarkMode={isDarkMode}

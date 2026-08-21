@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ShoppingBag, Sun, Moon, LayoutDashboard, Store, Wheat, Sparkles } from 'lucide-react';
+import { Search, ShoppingBag, Sun, Moon, LayoutDashboard, Store, Wheat, Sparkles, LogOut } from 'lucide-react';
 import { ProductCategory } from '../types';
 
 interface Props {
@@ -64,6 +64,7 @@ export const Header: React.FC<Props> = ({
               if (e.detail === 3) {
                 onOpenAdminAuth();
               } else {
+                localStorage.removeItem('uberris_admin_auth');
                 onViewChange('catalog');
               }
             }}
@@ -110,12 +111,15 @@ export const Header: React.FC<Props> = ({
             {/* View Switcher: Admin back to Catalog */}
             {currentView === 'admin' && (
               <button
-                onClick={() => onViewChange('catalog')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border bg-[#60b64d] text-white border-[#60b64d] shadow-md shadow-[#60b64d]/20 hover:brightness-105 active:scale-95"
+                onClick={() => {
+                  localStorage.removeItem('uberris_admin_auth');
+                  onViewChange('catalog');
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border bg-red-600 text-white border-red-600 shadow-md shadow-red-600/20 hover:bg-red-500 active:scale-95"
               >
-                <Store className="w-4 h-4" />
-                <span className="hidden sm:inline">Ver Catálogo</span>
-                <span className="sm:hidden">Catálogo</span>
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Salir</span>
+                <span className="sm:hidden">Salir</span>
               </button>
             )}
 
