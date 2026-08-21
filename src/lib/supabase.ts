@@ -808,6 +808,9 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
   const supabase = getSupabase();
   if (!supabase) return null;
 
+  const localSavedStr = typeof window !== 'undefined' ? localStorage.getItem('uberris_store_settings') : null;
+  const localSavedSettings: Partial<StoreSettings> = localSavedStr ? (JSON.parse(localSavedStr) || {}) : {};
+
   const { data, error } = await supabase
     .from('store_settings')
     .select('*')

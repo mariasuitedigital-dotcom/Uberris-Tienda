@@ -44,7 +44,8 @@ import {
   Eye,
   EyeOff,
   Image as ImageIcon,
-  Upload
+  Upload,
+  Info
 } from 'lucide-react';
 import { isSupabaseConnected, dbUpsertStoreSettings, SUPABASE_SQL_FOOTER_MIGRATION } from '../lib/supabase';
 import {
@@ -2234,7 +2235,7 @@ export const AdminPanel: React.FC<Props> = ({
                               alt={p.name}
                               referrerPolicy="no-referrer"
                               onError={(e) => {
-                                (e.target as HTMLElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
                               }}
                               className="w-16 h-16 rounded-xl object-cover border border-slate-500/20 bg-slate-800"
                             />

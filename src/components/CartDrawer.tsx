@@ -299,7 +299,7 @@ ${itemsListText}-----------------------------------------
                       alt={item.product.name}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        (e.target as HTMLElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
                       }}
                       className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-800"
                     />
