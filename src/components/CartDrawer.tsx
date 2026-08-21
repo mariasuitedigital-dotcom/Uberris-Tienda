@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation } from 'lucide-react';
-import { CartItem, Order } from '../types';
+import { CartItem, Order, StoreSettings } from '../types';
 import { PALOMINO_BRANCHES, RIVERA_CARGO_BRANCHES, OTHER_SHIPPING_AGENCIES, PalominoBranch, RiveraCargoBranch } from '../data/shippingDestinations';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   onClearCart: () => void;
   onSubmitOrder: (order: Order) => void;
   isDarkMode: boolean;
+  settings?: StoreSettings;
 }
 
 export const CartDrawer: React.FC<Props> = ({
@@ -23,6 +24,7 @@ export const CartDrawer: React.FC<Props> = ({
   onClearCart,
   onSubmitOrder,
   isDarkMode,
+  settings,
 }) => {
   // Form fields
   const [clientName, setClientName] = useState('');
@@ -686,7 +688,7 @@ ${itemsListText}-----------------------------------------
                     Método de Pago
                   </label>
 
-                  <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('yape')}
@@ -700,9 +702,25 @@ ${itemsListText}-----------------------------------------
                     >
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[#742284]" />
-                        <span className="font-extrabold text-sm">Yape</span>
+                        <span className="font-extrabold text-[11px] sm:text-sm">Yape</span>
                       </div>
-                      <span className="text-[10px] opacity-75 font-normal">932 220 326</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('plin')}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${
+                        paymentMethod === 'plin'
+                          ? 'border-[#00e3ff] bg-[#00e3ff]/15 text-[#00e3ff] shadow-sm ring-1 ring-[#00e3ff]'
+                          : isDarkMode
+                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#00e3ff]/50'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#00e3ff]/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#00e3ff]" />
+                        <span className="font-extrabold text-[11px] sm:text-sm">Plin</span>
+                      </div>
                     </button>
 
                     <button
@@ -718,13 +736,12 @@ ${itemsListText}-----------------------------------------
                     >
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[#002a8f]" />
-                        <span className="font-extrabold text-sm">Transferencia BCP</span>
+                        <span className="font-extrabold text-[11px] sm:text-sm">Banco</span>
                       </div>
-                      <span className="text-[10px] opacity-75 font-normal">Cta & CCI Soles</span>
                     </button>
                   </div>
 
-                  {/* Payment Details & Copy Info */}
+                      {/* Payment Details & Copy Info */}
                   {paymentMethod === 'yape' && (
                     <div className={`p-3 rounded-xl border animate-in fade-in duration-150 ${
                       isDarkMode ? 'bg-[#742284]/10 border-[#742284]/30' : 'bg-purple-50 border-purple-200'
@@ -732,16 +749,16 @@ ${itemsListText}-----------------------------------------
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="font-semibold text-purple-400">Número de Yape:</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium">
-                          Titular: Uberris
+                          Titular: {settings?.yapeName || 'Uberris'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/20 border border-purple-500/20">
                         <span className="font-mono text-sm font-bold tracking-wider text-purple-200">
-                          932 220 326
+                          {settings?.yapeNumber || '932 220 326'}
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleCopy('932220326', 'yape')}
+                          onClick={() => handleCopy(settings?.yapeNumber || '932 220 326', 'yape')}
                           className="px-2.5 py-1 rounded-md bg-[#742284] hover:bg-[#8e2ba1] text-white text-xs font-semibold flex items-center gap-1 transition-all"
                         >
                           {copiedField === 'yape' ? (
@@ -760,14 +777,49 @@ ${itemsListText}-----------------------------------------
                     </div>
                   )}
 
+                  {paymentMethod === 'plin' && (
+                    <div className={`p-3 rounded-xl border animate-in fade-in duration-150 ${
+                      isDarkMode ? 'bg-[#00e3ff]/10 border-[#00e3ff]/30' : 'bg-cyan-50 border-cyan-200'
+                    }`}>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="font-semibold text-cyan-500">Número de Plin:</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 font-medium">
+                          Titular: {settings?.plinName || 'Uberris'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black/20 border border-cyan-500/20">
+                        <span className="font-mono text-sm font-bold tracking-wider text-cyan-600 dark:text-cyan-200">
+                          {settings?.plinNumber || '983 746 281'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(settings?.plinNumber || '983 746 281', 'plin')}
+                          className="px-2.5 py-1 rounded-md bg-[#00e3ff] hover:bg-[#00c3db] text-slate-900 text-xs font-semibold flex items-center gap-1 transition-all"
+                        >
+                          {copiedField === 'plin' ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>¡Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {paymentMethod === 'bcp' && (
                     <div className={`p-3 rounded-xl border space-y-2 animate-in fade-in duration-150 ${
                       isDarkMode ? 'bg-[#002a8f]/10 border-[#002a8f]/30' : 'bg-blue-50 border-blue-200'
                     }`}>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-blue-400">Banco de Crédito del Perú (BCP):</span>
+                        <span className="font-semibold text-blue-400">Banco: {settings?.bankAccountBank || 'BCP'}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium">
-                          Soles
+                          {settings?.bankAccountName || 'Uberris'}
                         </span>
                       </div>
 
@@ -777,7 +829,7 @@ ${itemsListText}-----------------------------------------
                           <span>N° de Cuenta Soles:</span>
                           <button
                             type="button"
-                            onClick={() => handleCopy('30500617175095', 'bcp_cta')}
+                            onClick={() => handleCopy(settings?.bankAccountNumber || '30500617175095', 'bcp_cta')}
                             className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-all"
                           >
                             {copiedField === 'bcp_cta' ? (
@@ -794,7 +846,7 @@ ${itemsListText}-----------------------------------------
                           </button>
                         </div>
                         <span className="font-mono text-xs font-bold tracking-wider text-blue-200 block">
-                          30500617175095
+                          {settings?.bankAccountNumber || '30500617175095'}
                         </span>
                       </div>
 
@@ -804,7 +856,7 @@ ${itemsListText}-----------------------------------------
                           <span>N° Cuenta Interbancaria (CCI):</span>
                           <button
                             type="button"
-                            onClick={() => handleCopy('00230510061717509519', 'bcp_cci')}
+                            onClick={() => handleCopy(settings?.bankAccountCci || '00230510061717509519', 'bcp_cci')}
                             className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-all"
                           >
                             {copiedField === 'bcp_cci' ? (
@@ -821,7 +873,7 @@ ${itemsListText}-----------------------------------------
                           </button>
                         </div>
                         <span className="font-mono text-[11px] font-bold tracking-wider text-blue-200 block break-all">
-                          00230510061717509519
+                          {settings?.bankAccountCci || '00230510061717509519'}
                         </span>
                       </div>
                     </div>

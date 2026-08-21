@@ -2490,6 +2490,79 @@ export const AdminPanel: React.FC<Props> = ({
                 </div>
               </div>
 
+              {/* Section 2: Cuentas y Métodos de Pago */}
+              <div className={`p-4 sm:p-6 rounded-2xl border ${
+                isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+              }`}>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-500/15">
+                  <CheckCircle className="w-5 h-5 text-indigo-400" />
+                  <h3 className="font-serif-craft text-base sm:text-lg font-bold">
+                    2. Cuentas y Métodos de Pago
+                  </h3>
+                </div>
+
+                <p className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Estos datos se mostrarán a tus clientes al finalizar su pedido para que sepan a dónde transferir.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Yape */}
+                  <div className="space-y-3">
+                    <h4 className={`text-sm font-bold flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                      📱 Yape
+                    </h4>
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Número de Yape</label>
+                      <input type="text" placeholder="983 746 281" value={editingSettings.yapeNumber || ''} onChange={(e) => setEditingSettings({ ...editingSettings, yapeNumber: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Titular Yape</label>
+                      <input type="text" placeholder="Nombre completo" value={editingSettings.yapeName || ''} onChange={(e) => setEditingSettings({ ...editingSettings, yapeName: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                    </div>
+                  </div>
+
+                  {/* Plin */}
+                  <div className="space-y-3">
+                    <h4 className={`text-sm font-bold flex items-center gap-1 ${isDarkMode ? 'text-sky-400' : 'text-sky-600'}`}>
+                      📲 Plin
+                    </h4>
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Número de Plin</label>
+                      <input type="text" placeholder="983 746 281" value={editingSettings.plinNumber || ''} onChange={(e) => setEditingSettings({ ...editingSettings, plinNumber: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Titular Plin</label>
+                      <input type="text" placeholder="Nombre completo" value={editingSettings.plinName || ''} onChange={(e) => setEditingSettings({ ...editingSettings, plinName: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                    </div>
+                  </div>
+
+                  {/* Bank Account */}
+                  <div className="space-y-3 md:col-span-2 mt-4 pt-4 border-t border-slate-500/15">
+                    <h4 className={`text-sm font-bold flex items-center gap-1 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                      🏦 Cuenta Bancaria (Opcional)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Banco (Ej. BCP, Interbank)</label>
+                        <input type="text" placeholder="BCP" value={editingSettings.bankAccountBank || ''} onChange={(e) => setEditingSettings({ ...editingSettings, bankAccountBank: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Titular de la Cuenta</label>
+                        <input type="text" placeholder="Razón social o Nombre" value={editingSettings.bankAccountName || ''} onChange={(e) => setEditingSettings({ ...editingSettings, bankAccountName: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Número de Cuenta</label>
+                        <input type="text" placeholder="191-12345678-0-12" value={editingSettings.bankAccountNumber || ''} onChange={(e) => setEditingSettings({ ...editingSettings, bankAccountNumber: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={`text-[10px] font-bold block ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Código de Cuenta Interbancario (CCI)</label>
+                        <input type="text" placeholder="00219100123456780123" value={editingSettings.bankAccountCci || ''} onChange={(e) => setEditingSettings({ ...editingSettings, bankAccountCci: e.target.value })} className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-[#60b64d] ${isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Section 3: Branding & Textos */}
               <div className={`p-4 sm:p-6 rounded-2xl border ${
                 isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'

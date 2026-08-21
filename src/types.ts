@@ -49,7 +49,7 @@ export interface Order {
   items: OrderItem[];
   createdAt: string;
   notes?: string;
-  paymentMethod?: 'Yape' | 'BCP';
+  paymentMethod?: 'Yape' | 'BCP' | 'Plin';
   shippingType?: 'palomino' | 'rivera_cargo' | 'agency' | 'store_pickup';
   shippingAgency?: string;
   shippingBranch?: string;
@@ -114,7 +114,15 @@ export interface StoreSettings {
   logoUrl?: string;
   heroBannerUrl?: string;
   yapeQrImage?: string;
+  yapeNumber?: string;
+  yapeName?: string;
   plinQrImage?: string;
+  plinNumber?: string;
+  plinName?: string;
+  bankAccountBank?: string;
+  bankAccountNumber?: string;
+  bankAccountCci?: string;
+  bankAccountName?: string;
   announcementBanner: string;
   updatedAt?: string;
 }

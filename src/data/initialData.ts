@@ -390,7 +390,15 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   logoUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80',
   heroBannerUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=1200&auto=format&fit=crop&q=80',
   yapeQrImage: '',
+  yapeNumber: '983746281',
+  yapeName: 'Uberris del Valle',
   plinQrImage: '',
+  plinNumber: '983746281',
+  plinName: 'Uberris del Valle',
+  bankAccountBank: 'BCP',
+  bankAccountNumber: '191-12345678-0-12',
+  bankAccountCci: '00219100123456780123',
+  bankAccountName: 'Uberris del Valle EIRL',
   announcementBanner: '🌱 Hornadas frescas diarias con trigo andino de Apurímac. Envíos directos a Abancay, Andahuaylas, Cusco y Lima.',
 };
 

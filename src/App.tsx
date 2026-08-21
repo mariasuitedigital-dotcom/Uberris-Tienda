@@ -584,7 +584,7 @@ export default function App() {
       />
 
       {/* Cart Side Drawer */}
-      <CartDrawer
+      <CartDrawer settings={storeSettings}
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cart={cart}
