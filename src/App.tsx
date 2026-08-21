@@ -160,7 +160,25 @@ export default function App() {
   // 5. Orders State
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('uberris_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Clean out legacy demo mock orders if present
+        if (Array.isArray(parsed)) {
+          const nonDemoOrders = parsed.filter(
+            (o: any) => o.id !== 'UBR-1024' && o.id !== 'UBR-1025' && o.id !== 'UBR-1026'
+          );
+          if (nonDemoOrders.length !== parsed.length) {
+            localStorage.setItem('uberris_orders', JSON.stringify(nonDemoOrders));
+            return nonDemoOrders;
+          }
+          return parsed;
+        }
+      } catch (e) {
+        return [];
+      }
+    }
+    return INITIAL_ORDERS;
   });
 
   useEffect(() => {
@@ -179,7 +197,24 @@ export default function App() {
 
   const [movements, setMovements] = useState<InventoryMovement[]>(() => {
     const saved = localStorage.getItem('uberris_movements');
-    return saved ? JSON.parse(saved) : INITIAL_MOVEMENTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const nonDemoMovements = parsed.filter(
+            (m: any) => m.id !== 'MOV-1001' && m.id !== 'MOV-1002' && m.id !== 'MOV-1003'
+          );
+          if (nonDemoMovements.length !== parsed.length) {
+            localStorage.setItem('uberris_movements', JSON.stringify(nonDemoMovements));
+            return nonDemoMovements;
+          }
+          return parsed;
+        }
+      } catch (e) {
+        return [];
+      }
+    }
+    return INITIAL_MOVEMENTS;
   });
 
   useEffect(() => {
