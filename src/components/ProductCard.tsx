@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Minus, ShoppingBag, Eye, Sparkles } from 'lucide-react';
 import { Product } from '../types';
+import { cleanDirectImageUrl } from '../lib/supabase';
 
 interface Props {
   product: Product;
@@ -55,7 +56,7 @@ export const ProductCard: React.FC<Props> = ({
       <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
         {!imgError && product.image ? (
           <img
-            src={product.image}
+            src={cleanDirectImageUrl(product.image)}
             alt={product.name}
             referrerPolicy="no-referrer"
             onError={() => setImgError(true)}

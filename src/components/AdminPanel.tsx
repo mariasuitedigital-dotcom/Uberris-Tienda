@@ -47,7 +47,14 @@ import {
   Upload,
   Info
 } from 'lucide-react';
-import { isSupabaseConnected, dbUpsertStoreSettings, SUPABASE_SQL_FOOTER_MIGRATION } from '../lib/supabase';
+import {
+  isSupabaseConnected,
+  dbUpsertStoreSettings,
+  SUPABASE_SQL_FOOTER_MIGRATION,
+  uploadImageToSupabaseStorage,
+  dataURLToBlob,
+  cleanDirectImageUrl
+} from '../lib/supabase';
 import {
   Product,
   Order,
@@ -76,25 +83,7 @@ interface Props {
   isDarkMode: boolean;
 }
 
-export const cleanDirectImageUrl = (url: string): string => {
-  if (!url) return '';
-  let cleaned = url.trim();
-
-  // Convert Google Drive view/share link -> direct image link
-  if (cleaned.includes('drive.google.com/file/d/')) {
-    const match = cleaned.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://lh3.googleusercontent.com/d/${match[1]}`;
-    }
-  }
-
-  // Convert Dropbox share link -> direct image link
-  if (cleaned.includes('dropbox.com/') && cleaned.includes('dl=0')) {
-    return cleaned.replace('dl=0', 'raw=1');
-  }
-
-  return cleaned;
-};
+export { cleanDirectImageUrl };
 
 export const AdminPanel: React.FC<Props> = ({
   products,
@@ -432,54 +421,81 @@ export const AdminPanel: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const processAndUploadImage = (
+    file: File,
+    maxDim: number,
+    quality: number,
+    prefix: string,
+    onComplete: (url: string) => void
+  ) => {
+    compressImageFile(file, maxDim, quality, async (compressedDataUrl) => {
+      if (isSupabaseConnected()) {
+        onShowToast('Subiendo a Supabase Storage...', 'Subiendo imagen a tu bucket "productos-uberris"...', 'info');
+        const blob = dataURLToBlob(compressedDataUrl);
+        const res = await uploadImageToSupabaseStorage(blob, prefix, 'productos-uberris');
+        if (res.success && res.url) {
+          onComplete(res.url);
+          onShowToast('☁️ ¡Subido a Supabase Storage!', 'Imagen alojada con éxito en el bucket "productos-uberris".', 'success');
+          return;
+        } else {
+          console.warn('Fallback local por error en Supabase Storage:', res.error);
+          onShowToast(
+            'Imagen cargada localmente',
+            `Se optimizó y guardó de forma local. Nota de Supabase Storage: ${res.error || 'Asegúrate de que el bucket sea público'}`,
+            'info'
+          );
+        }
+      }
+      onComplete(compressedDataUrl);
+      if (!isSupabaseConnected()) {
+        onShowToast('Imagen Cargada', 'Se cargó y optimizó la imagen localmente.', 'success');
+      }
+    });
+  };
+
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    compressImageFile(file, 800, 0.90, (compressedUrl) => {
-      setEditingSettings((prev) => ({ ...prev, logoUrl: compressedUrl }));
-      onShowToast('Logo cargado', 'Se cargó y optimizó la imagen del logo. Presiona "Guardar y Sincronizar Cambios" para aplicarlo.', 'success');
+    processAndUploadImage(file, 800, 0.90, 'logo', (finalUrl) => {
+      setEditingSettings((prev) => ({ ...prev, logoUrl: finalUrl }));
     });
   };
 
   const handleHeroImage1FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    compressImageFile(file, 1000, 0.88, (compressedUrl) => {
-      setEditingSettings((prev) => ({ ...prev, heroImage1: compressedUrl }));
-      onShowToast('Imagen Central Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    processAndUploadImage(file, 1000, 0.88, 'hero1', (finalUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage1: finalUrl }));
     });
   };
 
   const handleHeroImage2FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    compressImageFile(file, 900, 0.88, (compressedUrl) => {
-      setEditingSettings((prev) => ({ ...prev, heroImage2: compressedUrl }));
-      onShowToast('Imagen Superior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    processAndUploadImage(file, 900, 0.88, 'hero2', (finalUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage2: finalUrl }));
     });
   };
 
   const handleHeroImage3FileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    compressImageFile(file, 900, 0.88, (compressedUrl) => {
-      setEditingSettings((prev) => ({ ...prev, heroImage3: compressedUrl }));
-      onShowToast('Imagen Inferior Cargada', 'Presiona "Guardar y Sincronizar Cambios" para aplicarla.', 'success');
+    processAndUploadImage(file, 900, 0.88, 'hero3', (finalUrl) => {
+      setEditingSettings((prev) => ({ ...prev, heroImage3: finalUrl }));
     });
   };
 
   const handleCategoryImageFileUpload = (catId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    compressImageFile(file, 900, 0.88, (compressedUrl) => {
+    processAndUploadImage(file, 900, 0.88, `cat_${catId}`, (finalUrl) => {
       setEditingSettings((prev) => ({
         ...prev,
         categoryImages: {
           ...(prev.categoryImages || {}),
-          [catId]: compressedUrl
+          [catId]: finalUrl
         }
       }));
-      onShowToast('Imagen de Categoría Cargada', `Se cargó la foto para "${catId}". Presiona "Guardar y Sincronizar Cambios" para aplicarla.`, 'success');
     });
   };
 
@@ -492,41 +508,10 @@ export const AdminPanel: React.FC<Props> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Resize and compress via canvas to max 1200px
-        const canvas = document.createElement('canvas');
-        const MAX_DIM = 1200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_DIM) {
-            height = Math.round((height * MAX_DIM) / width);
-            width = MAX_DIM;
-          }
-        } else {
-          if (height > MAX_DIM) {
-            width = Math.round((width * MAX_DIM) / height);
-            height = MAX_DIM;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
-          setEditingProduct((prev) => (prev ? { ...prev, image: compressedDataUrl } : null));
-          onShowToast('Imagen Cargada', 'Foto de producto cargada y optimizada con éxito.', 'success');
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+    const prodPrefix = editingProduct?.name ? editingProduct.name.substring(0, 15) : 'producto';
+    processAndUploadImage(file, 1200, 0.88, prodPrefix, (finalUrl) => {
+      setEditingProduct((prev) => (prev ? { ...prev, image: finalUrl } : null));
+    });
   };
 
   const handleConfirmDeleteProduct = (productId: string) => {
@@ -4001,7 +3986,7 @@ export const AdminPanel: React.FC<Props> = ({
                   <div className="flex items-center gap-2">
                     <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#60b64d] hover:bg-[#50a040] px-2.5 py-1 rounded-lg transition-colors shadow-xs">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Subir desde PC/Celular</span>
+                      <span>Subir a Supabase / PC</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -4014,6 +3999,7 @@ export const AdminPanel: React.FC<Props> = ({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded-lg transition-colors border border-emerald-500/20"
+                      title="Subir a Postimages.org y copiar enlace directo"
                     >
                       <span>Postimages</span>
                       <ExternalLink className="w-3 h-3" />
@@ -4024,7 +4010,7 @@ export const AdminPanel: React.FC<Props> = ({
                 <div>
                   <input
                     type="text"
-                    placeholder="Pega un enlace directo o sube un archivo (ej: https://i.postimg.cc/.../foto.jpg)"
+                    placeholder="Pega un enlace directo o sube un archivo (ej: https://...supabase.co/storage/... o https://i.postimg.cc/...)"
                     value={editingProduct.image || ''}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -4041,6 +4027,11 @@ export const AdminPanel: React.FC<Props> = ({
                       isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
                     }`}
                   />
+                  {editingProduct.image?.includes('supabase.co/storage') && (
+                    <p className="text-[11px] mt-1 text-emerald-400 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 shrink-0" /> Imagen alojada en tu Bucket de Supabase Storage.
+                    </p>
+                  )}
                   {editingProduct.image?.includes('postimg.cc') && !editingProduct.image?.includes('i.postimg.cc') && (
                     <p className="text-[11px] mt-1 text-amber-400 font-medium">
                       ⚠️ Atención: Has pegado un enlace de página de Postimages. En Postimages copia el campo <strong className="underline">"Enlace Directo"</strong> que empieza con <code>https://i.postimg.cc/...</code>

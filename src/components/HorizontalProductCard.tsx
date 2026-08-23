@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Plus, Flame, Sparkles, Heart } from 'lucide-react';
 import { Product } from '../types';
+import { cleanDirectImageUrl } from '../lib/supabase';
 
 interface HorizontalProductCardProps {
   product: Product;
@@ -49,7 +50,7 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
       <div className="relative h-36 sm:h-44 overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
         {!imgError && product.image ? (
           <img
-            src={product.image}
+            src={cleanDirectImageUrl(product.image)}
             alt={product.name}
             referrerPolicy="no-referrer"
             onError={() => setImgError(true)}

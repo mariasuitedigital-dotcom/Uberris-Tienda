@@ -87,8 +87,15 @@ export const cleanDirectImageUrl = (url: string): string => {
     trimmed = htmlMatch[1].trim();
   }
 
-  // 3. Google Drive Share link -> Direct Image URL
-  // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing or https://drive.google.com/open?id=FILE_ID
+  // 3. Postimages page viewer link -> Direct image link
+  if (trimmed.includes('postimg.cc/') && !trimmed.includes('i.postimg.cc/')) {
+    const postimgMatch = trimmed.match(/postimg\.cc\/([a-zA-Z0-9]+)/i);
+    if (postimgMatch && postimgMatch[1]) {
+      return `https://i.postimg.cc/${postimgMatch[1]}/image.jpg`;
+    }
+  }
+
+  // 4. Google Drive Share link -> Direct Image URL
   const gdriveMatch1 = trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
   if (gdriveMatch1 && gdriveMatch1[1]) {
     return `https://lh3.googleusercontent.com/d/${gdriveMatch1[1]}`;
@@ -98,12 +105,12 @@ export const cleanDirectImageUrl = (url: string): string => {
     return `https://lh3.googleusercontent.com/d/${gdriveMatch2[1]}`;
   }
 
-  // 4. Dropbox link -> Direct Image URL
+  // 5. Dropbox link -> Direct Image URL
   if (trimmed.includes('dropbox.com') && trimmed.includes('dl=0')) {
     trimmed = trimmed.replace('dl=0', 'raw=1');
   }
 
-  // 5. Imgur link without extension -> Add .jpg
+  // 6. Imgur link without extension -> Add .jpg
   const imgurMatch = trimmed.match(/^https?:\/\/(?:i\.)?imgur\.com\/([a-zA-Z0-9]+)$/i);
   if (imgurMatch && imgurMatch[1] && !trimmed.endsWith('.jpg') && !trimmed.endsWith('.png')) {
     return `https://i.imgur.com/${imgurMatch[1]}.jpg`;
@@ -1048,3 +1055,87 @@ export const subscribeToSupabaseSettings = (onDataChange: () => void) => {
     supabase.removeChannel(channel);
   };
 };
+
+/**
+ * Utility to convert base64 dataUrl to Blob for Supabase Storage uploads
+ */
+export const dataURLToBlob = (dataUrl: string): Blob => {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (err) {
+    console.error('Error converting dataURL to Blob:', err);
+    return new Blob([], { type: 'image/jpeg' });
+  }
+};
+
+/**
+ * Uploads an image File or Blob directly to Supabase Storage Bucket.
+ * Priority buckets: 'productos-uberris', 'PRODUCTOS-UBERRIS', 'productos', 'images'
+ */
+export const uploadImageToSupabaseStorage = async (
+  fileOrBlob: File | Blob,
+  customPrefix: string = 'prod',
+  targetBucket: string = 'productos-uberris'
+): Promise<{ success: boolean; url?: string; error?: string }> => {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { success: false, error: 'Supabase no está configurado.' };
+  }
+
+  try {
+    let ext = 'jpg';
+    if (fileOrBlob.type) {
+      const typePart = fileOrBlob.type.split('/')[1];
+      if (typePart) ext = typePart.replace('jpeg', 'jpg').replace('+xml', '');
+    }
+
+    const randomHash = Math.random().toString(36).substring(2, 8);
+    const timeStamp = Date.now();
+    const cleanPrefix = customPrefix.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const finalFileName = `${cleanPrefix}_${timeStamp}_${randomHash}.${ext}`;
+
+    const candidateBuckets = Array.from(new Set([
+      targetBucket,
+      'productos-uberris',
+      'PRODUCTOS-UBERRIS',
+      'productos',
+      'images',
+      'public'
+    ]));
+
+    let lastErrorMessage = '';
+
+    for (const b of candidateBuckets) {
+      const { data, error } = await supabase.storage
+        .from(b)
+        .upload(finalFileName, fileOrBlob, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: fileOrBlob.type || 'image/jpeg'
+        });
+
+      if (!error && data) {
+        const { data: publicData } = supabase.storage.from(b).getPublicUrl(data.path);
+        if (publicData?.publicUrl) {
+          return { success: true, url: publicData.publicUrl };
+        }
+      } else if (error) {
+        lastErrorMessage = error.message;
+      }
+    }
+
+    return { success: false, error: lastErrorMessage || 'No se pudo subir al bucket de Supabase.' };
+  } catch (err: any) {
+    console.error('Exception during Supabase Storage upload:', err);
+    return { success: false, error: err?.message || 'Error inesperado al subir la imagen.' };
+  }
+};
+

@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ShoppingBag, Plus, Minus, ShieldCheck, MapPin, Sparkles, Flame } from 'lucide-react';
 import { Product, StoreSettings } from '../types';
+import { cleanDirectImageUrl } from '../lib/supabase';
 
 interface Props {
   product: Product | null;
@@ -70,7 +71,7 @@ export const ProductQuickViewModal: React.FC<Props> = ({
           <div className="relative shrink-0 h-48 sm:h-64 md:h-full min-h-[160px] md:min-h-[260px] bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40 overflow-hidden flex items-center justify-center">
             {!imgError && product.image ? (
               <img
-                src={product.image}
+                src={cleanDirectImageUrl(product.image)}
                 alt={product.name}
                 referrerPolicy="no-referrer"
                 onError={() => setImgError(true)}
