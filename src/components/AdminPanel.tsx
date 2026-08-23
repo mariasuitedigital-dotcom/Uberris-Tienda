@@ -51,6 +51,8 @@ import {
   isSupabaseConnected,
   dbUpsertStoreSettings,
   SUPABASE_SQL_FOOTER_MIGRATION,
+  SUPABASE_SQL_AGENCIES_MIGRATION,
+  SUPABASE_SQL_CATEGORIES_MIGRATION,
   uploadImageToSupabaseStorage,
   dataURLToBlob,
   cleanDirectImageUrl
@@ -63,8 +65,22 @@ import {
   InventoryMovement,
   ProductionConsolidatedItem,
   ProductionBreakdownClient,
-  StoreSettings
+  StoreSettings,
+  ShippingAgency,
+  ShippingDestination,
+  CategoryInfo
 } from '../types';
+import {
+  getStoredAgencies,
+  getStoredPalominoBranches,
+  getStoredRiveraBranches,
+  getStoredNacionalBranches,
+  getStoredMolinaBranches,
+  PalominoBranch,
+  RiveraCargoBranch,
+  NacionalBranch,
+  MolinaBranch
+} from '../data/shippingDestinations';
 
 interface Props {
   products: Product[];
@@ -101,8 +117,9 @@ export const AdminPanel: React.FC<Props> = ({
   onOpenSupabaseModal,
   isDarkMode,
 }) => {
-  // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario, 4. Redes & Footer
-  const [activeMainTab, setActiveMainTab] = useState<'produccion' | 'pedidos' | 'inventario' | 'redes'>('produccion');
+  // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario, 4. Redes & Footer, 5. Agencias
+  const [activeMainTab, setActiveMainTab] = useState<'produccion' | 'pedidos' | 'inventario' | 'redes' | 'agencias'>('produccion');
+  const [copiedAgenciesSql, setCopiedAgenciesSql] = useState(false);
 
   // Local settings state for the form
   const [editingSettings, setEditingSettings] = useState<StoreSettings>(() => {
@@ -149,12 +166,27 @@ export const AdminPanel: React.FC<Props> = ({
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
+  const [copiedCategoriesSql, setCopiedCategoriesSql] = useState(false);
 
   const handleCopyMigrationSql = () => {
     navigator.clipboard.writeText(SUPABASE_SQL_FOOTER_MIGRATION);
     setCopiedMigrationSql(true);
     onShowToast('Script de Migración Copiado', 'Pégalo en el SQL Editor de Supabase y dale a "RUN".', 'success');
     setTimeout(() => setCopiedMigrationSql(false), 3000);
+  };
+
+  const handleCopyCategoriesSql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_CATEGORIES_MIGRATION);
+    setCopiedCategoriesSql(true);
+    onShowToast('Query de Categorías Copiado', 'Pégalo en el SQL Editor de Supabase y dale a "RUN" para crear o actualizar la tabla de categorías.', 'success');
+    setTimeout(() => setCopiedCategoriesSql(false), 3000);
+  };
+
+  const handleCopyAgenciesSql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_AGENCIES_MIGRATION);
+    setCopiedAgenciesSql(true);
+    onShowToast('Query de Tablas de Agencias Copiado', 'Pégalo en el SQL Editor de Supabase y dale a "RUN" para crear shipping_agencies y shipping_destinations.', 'success');
+    setTimeout(() => setCopiedAgenciesSql(false), 3000);
   };
 
   React.useEffect(() => {
@@ -193,6 +225,127 @@ export const AdminPanel: React.FC<Props> = ({
 
   // Mobile filters drawer / collapse
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // --- AGENCIES & DESTINATIONS MANAGEMENT STATE ---
+  const [agenciesList, setAgenciesList] = useState<ShippingAgency[]>(getStoredAgencies);
+  const [palominoBranches, setPalominoBranches] = useState<PalominoBranch[]>(getStoredPalominoBranches);
+  const [riveraBranches, setRiveraBranches] = useState<RiveraCargoBranch[]>(getStoredRiveraBranches);
+  const [nacionalBranches, setNacionalBranches] = useState<NacionalBranch[]>(getStoredNacionalBranches);
+  const [molinaBranches, setMolinaBranches] = useState<MolinaBranch[]>(getStoredMolinaBranches);
+
+  // Agency Edit Modal State
+  const [agencyModalData, setAgencyModalData] = useState<Partial<ShippingAgency> | null>(null);
+  const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
+
+  // Branch Edit Modal State
+  const [branchModalData, setBranchModalData] = useState<{
+    agencyType: string;
+    branch: any;
+    isNew: boolean;
+  } | null>(null);
+
+  // Handler to toggle agency active status
+  const handleToggleAgencyActive = (agencyId: string) => {
+    const updated = agenciesList.map(a => a.id === agencyId ? { ...a, active: !a.active } : a);
+    setAgenciesList(updated);
+    localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    onShowToast('Estado de Agencia Actualizado', 'Los cambios se han guardado correctamente.', 'success');
+  };
+
+  // Handler to save Agency changes (edit or add)
+  const handleSaveAgencyModal = (agency: Partial<ShippingAgency>) => {
+    if (!agency.name?.trim()) {
+      onShowToast('Error', 'El nombre de la agencia es obligatorio.', 'error');
+      return;
+    }
+
+    let updated: ShippingAgency[];
+    if (agency.id && agenciesList.some(a => a.id === agency.id)) {
+      updated = agenciesList.map(a => a.id === agency.id ? (agency as ShippingAgency) : a);
+    } else {
+      const newAgency: ShippingAgency = {
+        id: agency.id || `ag_${Date.now()}`,
+        name: agency.name || 'Nueva Agencia',
+        type: (agency.type as any) || 'otra',
+        description: agency.description || '',
+        dispatchDaysSummary: agency.dispatchDaysSummary || 'Martes y Viernes',
+        active: agency.active ?? true,
+        sortOrder: agenciesList.length + 1,
+      };
+      updated = [...agenciesList, newAgency];
+    }
+
+    setAgenciesList(updated);
+    localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    setIsAgencyModalOpen(false);
+    setAgencyModalData(null);
+    onShowToast('Agencia Guardada', 'La agencia de transporte ha sido actualizada.', 'success');
+  };
+
+  // Handler to delete an agency
+  const handleDeleteAgency = (agencyId: string) => {
+    const updated = agenciesList.filter(a => a.id !== agencyId);
+    setAgenciesList(updated);
+    localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    onShowToast('Agencia Eliminada', 'La agencia fue removida del sistema.', 'info');
+  };
+
+  // Handler to save Branch (Add or Edit)
+  const handleSaveBranchModal = () => {
+    if (!branchModalData) return;
+    const { agencyType, branch, isNew } = branchModalData;
+
+    if (!branch.name?.trim()) {
+      onShowToast('Error', 'El nombre de la sede/destino es obligatorio.', 'error');
+      return;
+    }
+
+    const branchId = branch.id || `br_${Date.now()}`;
+    const cleanBranch = { ...branch, id: branchId };
+
+    if (agencyType === 'palomino') {
+      let updated = isNew ? [...palominoBranches, cleanBranch] : palominoBranches.map(b => b.id === branchId ? cleanBranch : b);
+      setPalominoBranches(updated);
+      localStorage.setItem('uberris_palomino_branches', JSON.stringify(updated));
+    } else if (agencyType === 'rivera_cargo') {
+      let updated = isNew ? [...riveraBranches, cleanBranch] : riveraBranches.map(b => b.id === branchId ? cleanBranch : b);
+      setRiveraBranches(updated);
+      localStorage.setItem('uberris_rivera_branches', JSON.stringify(updated));
+    } else if (agencyType === 'agencia_nacional') {
+      let updated = isNew ? [...nacionalBranches, cleanBranch] : nacionalBranches.map(b => b.id === branchId ? cleanBranch : b);
+      setNacionalBranches(updated);
+      localStorage.setItem('uberris_nacional_branches', JSON.stringify(updated));
+    } else if (agencyType === 'agencia_molina') {
+      let updated = isNew ? [...molinaBranches, cleanBranch] : molinaBranches.map(b => b.id === branchId ? cleanBranch : b);
+      setMolinaBranches(updated);
+      localStorage.setItem('uberris_molina_branches', JSON.stringify(updated));
+    }
+
+    setBranchModalData(null);
+    onShowToast('Sede Guardada', 'Los datos de la sede han sido actualizados con éxito.', 'success');
+  };
+
+  // Handler to delete a branch
+  const handleDeleteBranch = (agencyType: string, branchId: string) => {
+    if (agencyType === 'palomino') {
+      const updated = palominoBranches.filter(b => b.id !== branchId);
+      setPalominoBranches(updated);
+      localStorage.setItem('uberris_palomino_branches', JSON.stringify(updated));
+    } else if (agencyType === 'rivera_cargo') {
+      const updated = riveraBranches.filter(b => b.id !== branchId);
+      setRiveraBranches(updated);
+      localStorage.setItem('uberris_rivera_branches', JSON.stringify(updated));
+    } else if (agencyType === 'agencia_nacional') {
+      const updated = nacionalBranches.filter(b => b.id !== branchId);
+      setNacionalBranches(updated);
+      localStorage.setItem('uberris_nacional_branches', JSON.stringify(updated));
+    } else if (agencyType === 'agencia_molina') {
+      const updated = molinaBranches.filter(b => b.id !== branchId);
+      setMolinaBranches(updated);
+      localStorage.setItem('uberris_molina_branches', JSON.stringify(updated));
+    }
+    onShowToast('Sede Eliminada', 'La sede ha sido removida del listado.', 'info');
+  };
 
   // --- FILTERED ORDERS ---
   const filteredOrders = useMemo(() => {
@@ -1096,6 +1249,21 @@ export const AdminPanel: React.FC<Props> = ({
             >
               <Settings className="w-3.5 h-3.5" />
               <span>4. MODIFICAR TEXTOS, BANNERS & GARANTÍAS</span>
+            </button>
+
+            {/* Tab 5: Agencias y Destinos de Envío */}
+            <button
+              onClick={() => setActiveMainTab('agencias')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 border ${
+                activeMainTab === 'agencias'
+                  ? 'bg-[#60b64d] text-white border-[#60b64d] shadow-sm'
+                  : isDarkMode
+                  ? 'text-sky-300 border-sky-500/30 bg-sky-950/20 hover:text-white hover:bg-sky-900/40'
+                  : 'text-sky-800 border-sky-200 bg-sky-50 hover:bg-sky-100'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>5. AGENCIAS Y DESTINOS</span>
             </button>
 
           </div>
@@ -3530,25 +3698,44 @@ export const AdminPanel: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  {/* Category Card Images Management Section */}
+                  {/* Category Card Management Section (Names, Descriptions, Photos) */}
                   <div className="md:col-span-2 pt-5 border-t border-dashed border-emerald-500/20 space-y-4">
-                    <div>
-                      <h4 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                        🖼️ Fotos de las Tarjetas de Categorías
-                      </h4>
-                      <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Cambia las fotos que aparecen en las tarjetas principales de la tienda (Panadería, Lácteos, Embutidos, Miel y Dulces, Papa Nativa).
-                      </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                          <span>🏷️ Gestión de Categorías (Nombres, Descripciones y Fotos)</span>
+                        </h4>
+                        <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                          Personaliza los títulos, breves descripciones y fotos de cada tarjeta de categoría en el catálogo.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyCategoriesSql}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
+                          copiedCategoriesSql
+                            ? 'bg-emerald-500 text-white border-emerald-500'
+                            : isDarkMode
+                            ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/30'
+                            : 'bg-white hover:bg-emerald-100 text-emerald-700 border-emerald-300 shadow-xs'
+                        }`}
+                      >
+                        {copiedCategoriesSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedCategoriesSql ? '¡SQL Copiado!' : 'Copiar Query Categorías Supabase'}</span>
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[
-                        { id: 'Panadería', name: 'Panadería Artesanal', defaultUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Lácteos', name: 'Quesería & Lácteos', defaultUrl: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Embutidos', name: 'Embutidos & Carnes', defaultUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Miel y Dulces', name: 'Miel & Dulces', defaultUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Papa Nativa', name: 'Papa Nativa', defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Panadería', defaultName: 'Panadería Artesanal', defaultDesc: 'Panes tradicionales horneados a la leña', defaultUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Lácteos', defaultName: 'Quesería & Lácteos', defaultDesc: 'Quesos frescos, madurados y manjar blanco', defaultUrl: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Embutidos', defaultName: 'Embutidos & Carnes', defaultDesc: 'Chorizos, cecina y jamones artesanales', defaultUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Miel y Dulces', defaultName: 'Miel & Dulces', defaultDesc: 'Miel pura de abeja y mermeladas puras', defaultUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800' },
+                        { id: 'Papa Nativa', defaultName: 'Papa Nativa', defaultDesc: 'Variedades nativas cultivadas en altura', defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800' },
                       ].map((catItem) => {
+                        const currentName = editingSettings.categoryNames?.[catItem.id] ?? catItem.defaultName;
+                        const currentDesc = editingSettings.categoryDescriptions?.[catItem.id] ?? catItem.defaultDesc;
                         const currentUrl = editingSettings.categoryImages?.[catItem.id] || '';
                         const displayUrl = cleanDirectImageUrl(currentUrl) || catItem.defaultUrl;
 
@@ -3557,71 +3744,135 @@ export const AdminPanel: React.FC<Props> = ({
                             key={catItem.id}
                             className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-emerald-500">{catItem.name}</span>
+                            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                              <span className="text-xs font-bold text-emerald-500">ID: {catItem.id}</span>
                               <span className="text-[10px] text-slate-400">Categoría</span>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                              <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
-                                <img
-                                  src={displayUrl}
-                                  alt={catItem.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = catItem.defaultUrl;
-                                  }}
-                                />
-                              </div>
+                            {/* Name Input */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Nombre de la Categoría
+                              </label>
+                              <input
+                                type="text"
+                                value={currentName}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditingSettings((prev) => ({
+                                    ...prev,
+                                    categoryNames: {
+                                      ...(prev.categoryNames || {}),
+                                      [catItem.id]: val
+                                    }
+                                  }));
+                                }}
+                                className={`w-full p-2 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#60b64d] ${
+                                  isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                }`}
+                              />
+                            </div>
 
-                              <div className="flex-1 space-y-1.5">
-                                <input
-                                  type="text"
-                                  placeholder="URL de imagen (https://...)"
-                                  value={currentUrl}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setEditingSettings((prev) => ({
-                                      ...prev,
-                                      categoryImages: {
-                                        ...(prev.categoryImages || {}),
-                                        [catItem.id]: val
-                                      }
-                                    }));
-                                  }}
-                                  className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
-                                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
-                                  }`}
-                                />
-                                <div className="flex items-center gap-1.5">
-                                  <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
-                                    <Upload className="w-3 h-3" />
-                                    <span>Subir Foto</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={(e) => handleCategoryImageFileUpload(catItem.id, e)}
-                                      className="hidden"
-                                    />
-                                  </label>
-                                  {currentUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingSettings((prev) => {
-                                          const updated = { ...(prev.categoryImages || {}) };
-                                          delete updated[catItem.id];
-                                          return { ...prev, categoryImages: updated };
-                                        });
-                                      }}
-                                      className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
-                                    >
-                                      Restablecer
-                                    </button>
-                                  )}
+                            {/* Description Input */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Descripción Corta
+                              </label>
+                              <input
+                                type="text"
+                                value={currentDesc}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditingSettings((prev) => ({
+                                    ...prev,
+                                    categoryDescriptions: {
+                                      ...(prev.categoryDescriptions || {}),
+                                      [catItem.id]: val
+                                    }
+                                  }));
+                                }}
+                                className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                  isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                }`}
+                              />
+                            </div>
+
+                            {/* Image & URL Input */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Imagen de la Tarjeta
+                              </label>
+                              <div className="flex items-center gap-3">
+                                <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
+                                  <img
+                                    src={displayUrl}
+                                    alt={currentName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = catItem.defaultUrl;
+                                    }}
+                                  />
+                                </div>
+
+                                <div className="flex-1 space-y-1.5">
+                                  <input
+                                    type="text"
+                                    placeholder="URL de imagen (https://...)"
+                                    value={currentUrl}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setEditingSettings((prev) => ({
+                                        ...prev,
+                                        categoryImages: {
+                                          ...(prev.categoryImages || {}),
+                                          [catItem.id]: val
+                                        }
+                                      }));
+                                    }}
+                                    className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                      isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                    }`}
+                                  />
+                                  <div className="flex items-center gap-1.5">
+                                    <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                      <Upload className="w-3 h-3" />
+                                      <span>Subir Foto</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleCategoryImageFileUpload(catItem.id, e)}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    {(currentUrl || editingSettings.categoryNames?.[catItem.id] || editingSettings.categoryDescriptions?.[catItem.id]) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingSettings((prev) => {
+                                            const updatedImgs = { ...(prev.categoryImages || {}) };
+                                            delete updatedImgs[catItem.id];
+                                            const updatedNames = { ...(prev.categoryNames || {}) };
+                                            delete updatedNames[catItem.id];
+                                            const updatedDescs = { ...(prev.categoryDescriptions || {}) };
+                                            delete updatedDescs[catItem.id];
+                                            return {
+                                              ...prev,
+                                              categoryImages: updatedImgs,
+                                              categoryNames: updatedNames,
+                                              categoryDescriptions: updatedDescs
+                                            };
+                                          });
+                                        }}
+                                        className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                      >
+                                        Restablecer
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
+
                           </div>
                         );
                       })}
@@ -3690,6 +3941,222 @@ export const AdminPanel: React.FC<Props> = ({
               </div>
 
             </form>
+
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 5: AGENCIAS Y DESTINOS DE ENVÍO                      */}
+        {/* ======================================================== */}
+        {activeMainTab === 'agencias' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            
+            {/* Top Toolbar */}
+            <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+              isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+            }`}>
+              <div>
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-[#60b64d]" />
+                  <h2 className="text-base font-extrabold tracking-tight">
+                    Agencias de Transporte y Sedes de Destino
+                  </h2>
+                </div>
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Modifica las agencias activas, edita nombres, cambia horarios de salida y administra las sedes de entrega disponibles.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgencyModalData({ name: '', description: '', dispatchDaysSummary: 'Martes y Viernes', active: true, type: 'otra' });
+                    setIsAgencyModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nueva Agencia</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of Agencies */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {agenciesList.map((agency) => {
+                // Determine branch list for this agency type
+                let branchList: any[] = [];
+                if (agency.type === 'palomino') branchList = palominoBranches;
+                else if (agency.type === 'rivera_cargo') branchList = riveraBranches;
+                else if (agency.type === 'agencia_nacional') branchList = nacionalBranches;
+                else if (agency.type === 'agencia_molina') branchList = molinaBranches;
+
+                return (
+                  <div key={agency.id} className={`p-4 sm:p-5 rounded-2xl border space-y-4 transition-all ${
+                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+                  }`}>
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-500/10">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[#60b64d]">
+                          <Truck className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-sm">{agency.name}</h3>
+                          <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            {agency.dispatchDaysSummary || 'Despachos desde Abancay'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAgencyActive(agency.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all border ${
+                            agency.active
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+                              : 'bg-slate-500/20 text-slate-400 border-slate-500/30 hover:bg-slate-500/30'
+                          }`}
+                        >
+                          {agency.active ? 'Activa' : 'Inactiva'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAgencyModalData(agency);
+                            setIsAgencyModalOpen(true);
+                          }}
+                          className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
+                            isDarkMode ? 'bg-[#15231c] hover:bg-[#1c3326] text-slate-300 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                          }`}
+                          title="Editar información de la agencia"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAgency(agency.id)}
+                          className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer transition-all"
+                          title="Eliminar agencia"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Agency Description */}
+                    {agency.description && (
+                      <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {agency.description}
+                      </p>
+                    )}
+
+                    {/* Branches Header */}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs font-bold flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#60b64d]" />
+                        Sedes / Destinos configurados ({branchList.length}):
+                      </span>
+
+                      {agency.type !== 'otra' && (
+                        <button
+                          type="button"
+                          onClick={() => setBranchModalData({
+                            agencyType: agency.type,
+                            branch: { name: '', address: '', dispatchSchedule: '5:00 PM', arrivalNotice: 'Llega al día siguiente' },
+                            isNew: true
+                          })}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Agregar Sede</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Branches List */}
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {branchList.length === 0 ? (
+                        <p className={`text-xs italic p-3 rounded-xl border text-center ${
+                          isDarkMode ? 'bg-[#0d1712] border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
+                          No hay sedes creadas para esta agencia. Haz clic en "Agregar Sede".
+                        </p>
+                      ) : (
+                        branchList.map((branch) => (
+                          <div key={branch.id} className={`p-2.5 rounded-xl border text-xs space-y-1.5 ${
+                            isDarkMode ? 'bg-[#0d1712] border-slate-800' : 'bg-slate-50 border-slate-200'
+                          }`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 overflow-hidden">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#60b64d] shrink-0" />
+                                <span className="font-bold truncate">{branch.name}</span>
+                                {(branch.region || branch.zone) && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-500/20 text-slate-400">
+                                    {branch.region || branch.zone}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {branch.googleMapsUrl && (
+                                  <a
+                                    href={branch.googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400"
+                                    title="Ver en Google Maps"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => setBranchModalData({ agencyType: agency.type, branch, isNew: false })}
+                                  className={`p-1 rounded cursor-pointer ${
+                                    isDarkMode ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-200 text-slate-700'
+                                  }`}
+                                  title="Editar esta sede"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBranch(agency.type, branch.id)}
+                                  className="p-1 rounded hover:bg-red-500/20 text-red-400 cursor-pointer"
+                                  title="Eliminar esta sede"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {branch.address && (
+                              <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                                📍 {branch.address}
+                              </p>
+                            )}
+
+                            {(branch.dispatchSchedule || branch.arrivalNotice) && (
+                              <p className={`text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                                🕒 {branch.dispatchSchedule || ''} {branch.arrivalNotice ? `| 📦 ${branch.arrivalNotice}` : ''}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
 
           </div>
         )}
@@ -4087,7 +4554,259 @@ export const AdminPanel: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Floating Action Button for Quick Product Creation */}
+      {/* Modal Editar / Crear Agencia */}
+      {isAgencyModalOpen && agencyModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div className={`w-full max-w-md p-6 rounded-2xl border text-left animate-in zoom-in-95 duration-150 ${
+            isDarkMode ? 'bg-[#0d1712] border-[#1c3326] text-white' : 'bg-white border-slate-200 text-slate-900 shadow-2xl'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-500/10 mb-4">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-[#60b64d]" />
+                <h3 className="font-extrabold text-base">
+                  {agencyModalData.id ? 'Editar Agencia' : 'Nueva Agencia de Transporte'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAgencyModalOpen(false)}
+                className={`p-1.5 rounded-lg border ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveAgencyModal(agencyModalData);
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold block mb-1">Nombre de la Agencia *</label>
+                <input
+                  type="text"
+                  required
+                  value={agencyModalData.name || ''}
+                  onChange={(e) => setAgencyModalData({ ...agencyModalData, name: e.target.value })}
+                  placeholder="Ej: Agencia Shalom, Expreso Palomino, etc."
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Descripción / Cobertura</label>
+                <textarea
+                  rows={2}
+                  value={agencyModalData.description || ''}
+                  onChange={(e) => setAgencyModalData({ ...agencyModalData, description: e.target.value })}
+                  placeholder="Ej: Envíos directos a Lima, Cusco y Arequipa..."
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Resumen Días / Horario de Despacho</label>
+                <input
+                  type="text"
+                  value={agencyModalData.dispatchDaysSummary || ''}
+                  onChange={(e) => setAgencyModalData({ ...agencyModalData, dispatchDaysSummary: e.target.value })}
+                  placeholder="Ej: Martes y Viernes (4:00 PM)"
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs font-bold">Estado de la Agencia:</span>
+                <button
+                  type="button"
+                  onClick={() => setAgencyModalData({ ...agencyModalData, active: !agencyModalData.active })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    agencyModalData.active ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}
+                >
+                  {agencyModalData.active ? '✓ ACTIVA' : 'INACTIVA'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-4 border-t border-slate-500/10">
+                <button
+                  type="button"
+                  onClick={() => setIsAgencyModalOpen(false)}
+                  className={`flex-1 py-2.5 rounded-xl border font-bold text-xs ${
+                    isDarkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-bold text-xs shadow-xs active:scale-95 transition-all"
+                >
+                  Guardar Agencia
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar / Crear Sede de Destino */}
+      {branchModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div className={`w-full max-w-md p-6 rounded-2xl border text-left animate-in zoom-in-95 duration-150 ${
+            isDarkMode ? 'bg-[#0d1712] border-[#1c3326] text-white' : 'bg-white border-slate-200 text-slate-900 shadow-2xl'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-500/10 mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-[#60b64d]" />
+                <h3 className="font-extrabold text-base">
+                  {branchModalData.isNew ? 'Agregar Nueva Sede / Destino' : 'Editar Sede / Destino'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBranchModalData(null)}
+                className={`p-1.5 rounded-lg border ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveBranchModal();
+            }} className="space-y-3.5">
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Nombre de la Sede / Ciudad *</label>
+                <input
+                  type="text"
+                  required
+                  value={branchModalData.branch.name || ''}
+                  onChange={(e) => setBranchModalData({
+                    ...branchModalData,
+                    branch: { ...branchModalData.branch, name: e.target.value }
+                  })}
+                  placeholder="Ej: Pichanaki, Luna Pizarro, Juliaca, Arequipa..."
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Zona / Región</label>
+                <input
+                  type="text"
+                  value={branchModalData.branch.zone || branchModalData.branch.region || ''}
+                  onChange={(e) => setBranchModalData({
+                    ...branchModalData,
+                    branch: { ...branchModalData.branch, zone: e.target.value, region: e.target.value }
+                  })}
+                  placeholder="Ej: Selva Central, Lima Centro, Sur del Perú, Ica y Nazca..."
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Dirección de la Sede</label>
+                <input
+                  type="text"
+                  value={branchModalData.branch.address || ''}
+                  onChange={(e) => setBranchModalData({
+                    ...branchModalData,
+                    branch: { ...branchModalData.branch, address: e.target.value }
+                  })}
+                  placeholder="Ej: Av. Luna Pizarro 424, La Victoria, Lima"
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-bold block mb-1">Horario de Despacho</label>
+                  <input
+                    type="text"
+                    value={branchModalData.branch.dispatchSchedule || branchModalData.branch.dispatchTime || ''}
+                    onChange={(e) => setBranchModalData({
+                      ...branchModalData,
+                      branch: { ...branchModalData.branch, dispatchSchedule: e.target.value, dispatchTime: e.target.value }
+                    })}
+                    placeholder="Ej: Viernes 1:00 PM"
+                    className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                      isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold block mb-1">Aviso / Recojo Estimado</label>
+                  <input
+                    type="text"
+                    value={branchModalData.branch.arrivalNotice || ''}
+                    onChange={(e) => setBranchModalData({
+                      ...branchModalData,
+                      branch: { ...branchModalData.branch, arrivalNotice: e.target.value }
+                    })}
+                    placeholder="Ej: Recoge Sábado 4:00 PM"
+                    className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                      isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Enlace de Google Maps (opcional)</label>
+                <input
+                  type="url"
+                  value={branchModalData.branch.googleMapsUrl || ''}
+                  onChange={(e) => setBranchModalData({
+                    ...branchModalData,
+                    branch: { ...branchModalData.branch, googleMapsUrl: e.target.value }
+                  })}
+                  placeholder="https://maps.google.com/?q=..."
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white focus:border-[#60b64d]' : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-4 border-t border-slate-500/10">
+                <button
+                  type="button"
+                  onClick={() => setBranchModalData(null)}
+                  className={`flex-1 py-2.5 rounded-xl border font-bold text-xs ${
+                    isDarkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-bold text-xs shadow-xs active:scale-95 transition-all"
+                >
+                  Guardar Sede
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
       <div className="fixed bottom-5 right-5 z-40 no-print flex items-center gap-2">
         <button
           onClick={openNewProductModal}

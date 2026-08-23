@@ -47,17 +47,43 @@ export interface Order {
   address?: string;
   destinationCity: string;
   deliveryDate?: string; // YYYY-MM-DD
+  dispatchDay?: 'Martes' | 'Jueves' | 'Viernes';
   status: OrderStatus;
   total: number;
   items: OrderItem[];
   createdAt: string;
   notes?: string;
   paymentMethod?: 'Yape' | 'BCP' | 'Plin';
-  shippingType?: 'palomino' | 'rivera_cargo' | 'agency' | 'store_pickup';
+  shippingType?: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'agency' | 'store_pickup';
   shippingAgency?: string;
   shippingBranch?: string;
   shippingAddress?: string;
   shippingNotice?: string;
+}
+
+export interface ShippingAgency {
+  id: string;
+  name: string;
+  type: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'otra';
+  description?: string;
+  dispatchDaysSummary?: string;
+  active: boolean;
+  sortOrder?: number;
+}
+
+export interface ShippingDestination {
+  id: string;
+  agencyId: string;
+  name: string;
+  zone?: string;
+  address: string;
+  phone?: string;
+  dispatchSchedule: string;
+  arrivalNotice: string;
+  dispatchDays?: 'Martes' | 'Jueves' | 'Viernes' | 'Martes, Jueves' | 'Martes y Viernes' | 'Viernes Únicamente';
+  googleMapsUrl?: string;
+  active: boolean;
+  sortOrder?: number;
 }
 
 export interface ProductionBreakdownClient {
@@ -100,6 +126,14 @@ export interface InventoryMovement {
   unit: string;
   date: string;
   referenceOrder?: string;
+}
+
+export interface CategoryInfo {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl: string;
+  active?: boolean;
 }
 
 export interface StoreSettings {
@@ -151,6 +185,9 @@ export interface StoreSettings {
   heroImage2?: string;
   heroImage3?: string;
   categoryImages?: Record<string, string>;
+  categoryNames?: Record<string, string>;
+  categoryDescriptions?: Record<string, string>;
+  customCategories?: CategoryInfo[];
   updatedAt?: string;
 }
 

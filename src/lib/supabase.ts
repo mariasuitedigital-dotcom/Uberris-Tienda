@@ -159,6 +159,110 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS hero_image_3 TEXT;
 `;
 
+export const SUPABASE_SQL_AGENCIES_MIGRATION = `-- ============================================================================
+-- TABLAS DE AGENCIAS DE TRANSPORTE Y DESTINOS DE ENVÍO UBERRIS
+-- Copia y pega esto en el "SQL Editor" de Supabase y presiona "RUN"
+-- ============================================================================
+
+ALTER TABLE IF EXISTS public.orders
+  ADD COLUMN IF NOT EXISTS dispatch_day TEXT;
+
+CREATE TABLE IF NOT EXISTS public.shipping_agencies (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  is_active BOOLEAN DEFAULT true,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS public.shipping_destinations (
+  id TEXT PRIMARY KEY,
+  agency_id TEXT REFERENCES public.shipping_agencies(id) ON DELETE CASCADE,
+  agency_code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  region_or_zone TEXT,
+  address TEXT,
+  phone TEXT,
+  dispatch_schedule TEXT,
+  arrival_notice TEXT,
+  google_maps_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.shipping_agencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shipping_destinations ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read shipping_agencies' AND tablename = 'shipping_agencies') THEN
+    CREATE POLICY "Public read shipping_agencies" ON public.shipping_agencies FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write shipping_agencies' AND tablename = 'shipping_agencies') THEN
+    CREATE POLICY "Public write shipping_agencies" ON public.shipping_agencies FOR ALL USING (true);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read shipping_destinations' AND tablename = 'shipping_destinations') THEN
+    CREATE POLICY "Public read shipping_destinations" ON public.shipping_destinations FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write shipping_destinations' AND tablename = 'shipping_destinations') THEN
+    CREATE POLICY "Public write shipping_destinations" ON public.shipping_destinations FOR ALL USING (true);
+  END IF;
+END $$;
+`;
+
+export const SUPABASE_SQL_CATEGORIES_MIGRATION = `-- ============================================================================
+-- SCRIPT DE MIGRACIÓN Y TABLA DE CATEGORÍAS (SUPABASE / POSTGRESQL)
+-- Copia y pega esto en el "SQL Editor" de Supabase para crear/editar categorías
+-- ============================================================================
+
+-- 1. Crear tabla de categorías
+CREATE TABLE IF NOT EXISTS public.categories (
+  id VARCHAR(100) PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  description TEXT,
+  image_url TEXT NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. Habilitar RLS (Seguridad)
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read categories' AND tablename = 'categories') THEN
+    CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write categories' AND tablename = 'categories') THEN
+    CREATE POLICY "Public write categories" ON public.categories FOR ALL USING (true);
+  END IF;
+END $$;
+
+-- 3. Insertar o Actualizar Categorías Iniciales
+INSERT INTO public.categories (id, name, description, image_url, sort_order) VALUES
+('Panadería', 'Panadería Artesanal', 'Panes tradicionales horneados a la leña', 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800', 1),
+('Lácteos', 'Quesería & Lácteos', 'Quesos frescos, madurados y manjar blanco', 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800', 2),
+('Embutidos', 'Embutidos & Carnes', 'Chorizos, cecina y jamones artesanales', 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800', 3),
+('Miel y Dulces', 'Miel & Dulces', 'Miel pura de abeja y mermeladas puras', 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800', 4),
+('Papa Nativa', 'Papa Nativa', 'Variedades nativas cultivadas en altura', 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800', 5)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  image_url = EXCLUDED.image_url,
+  updated_at = NOW();
+
+-- 4. Actualizar columnas en la tabla store_settings para respaldo JSON
+ALTER TABLE IF EXISTS public.store_settings
+  ADD COLUMN IF NOT EXISTS category_images JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS category_names JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS category_descriptions JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS custom_categories JSONB DEFAULT '[]'::jsonb;
+`;
+
 export const SUPABASE_SQL_SETUP = `-- ============================================================================
 -- BASE DE DATOS COMPLETA: UBERRIS DEL VALLE - APURÍMAC
 -- EJECUTA ESTE SCRIPT COMPLETO EN EL "SQL EDITOR" DE TU PANEL DE SUPABASE
@@ -200,6 +304,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   shipping_branch TEXT,
   shipping_address TEXT,
   shipping_notice TEXT,
+  dispatch_day TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -330,6 +435,31 @@ CREATE TABLE IF NOT EXISTS public.production_batches (
   status TEXT NOT NULL DEFAULT 'planificado', -- 'planificado', 'amasando', 'en_horno', 'terminado'
   scheduled_date DATE NOT NULL,
   notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 8. TABLAS DE AGENCIAS Y DESTINOS DE ENVÍO
+CREATE TABLE IF NOT EXISTS public.shipping_agencies (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  is_active BOOLEAN DEFAULT true,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS public.shipping_destinations (
+  id TEXT PRIMARY KEY,
+  agency_id TEXT REFERENCES public.shipping_agencies(id) ON DELETE CASCADE,
+  agency_code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  region_or_zone TEXT,
+  address TEXT,
+  phone TEXT,
+  dispatch_schedule TEXT,
+  arrival_notice TEXT,
+  google_maps_url TEXT,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
@@ -571,6 +701,7 @@ export const dbFetchOrders = async (): Promise<Order[] | null> => {
     shippingBranch: row.shipping_branch || '',
     shippingAddress: row.shipping_address || '',
     shippingNotice: row.shipping_notice || '',
+    dispatchDay: row.dispatch_day || undefined,
     createdAt: row.created_at,
     items: (row.order_items || []).map((item: any) => ({
       productId: item.product_id,
@@ -604,6 +735,7 @@ export const dbCreateOrder = async (order: Order): Promise<boolean> => {
     shipping_branch: order.shippingBranch || null,
     shipping_address: order.shippingAddress || null,
     shipping_notice: order.shippingNotice || null,
+    dispatch_day: order.dispatchDay || null,
     created_at: order.createdAt || new Date().toISOString(),
   };
 
@@ -884,6 +1016,21 @@ export const dbFetchStoreSettings = async (): Promise<StoreSettings | null> => {
       'Miel y Dulces': 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800',
       'Papa Nativa': 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800',
     },
+    categoryNames: data.category_names || localSavedSettings.categoryNames || {
+      'Panadería': 'Panadería Artesanal',
+      'Lácteos': 'Quesería & Lácteos',
+      'Embutidos': 'Embutidos & Carnes',
+      'Miel y Dulces': 'Miel & Dulces',
+      'Papa Nativa': 'Papa Nativa',
+    },
+    categoryDescriptions: data.category_descriptions || localSavedSettings.categoryDescriptions || {
+      'Panadería': 'Panes tradicionales horneados a la leña',
+      'Lácteos': 'Quesos frescos, madurados y manjar blanco',
+      'Embutidos': 'Chorizos, cecina y jamones artesanales',
+      'Miel y Dulces': 'Miel pura de abeja y mermeladas puras',
+      'Papa Nativa': 'Variedades nativas cultivadas en altura',
+    },
+    customCategories: data.custom_categories || localSavedSettings.customCategories || [],
     updatedAt: data.updated_at,
   };
 };
@@ -949,6 +1096,9 @@ export const dbUpsertStoreSettings = async (
     hero_image_2: cleanDirectImageUrl(settings.heroImage2 || ''),
     hero_image_3: cleanDirectImageUrl(settings.heroImage3 || ''),
     category_images: settings.categoryImages || {},
+    category_names: settings.categoryNames || {},
+    category_descriptions: settings.categoryDescriptions || {},
+    custom_categories: settings.customCategories || [],
     updated_at: new Date().toISOString(),
   };
 
