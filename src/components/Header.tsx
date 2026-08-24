@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, ShoppingBag, Sun, Moon, LayoutDashboard, Store, Wheat, Sparkles, LogOut } from 'lucide-react';
-import { ProductCategory } from '../types';
+import { ProductCategory, Product, CategoryInfo } from '../types';
+import { HeaderCategoryBar } from './HeaderCategoryBar';
 
 interface Props {
   searchQuery: string;
@@ -18,16 +19,12 @@ interface Props {
   announcementBanner?: string;
   logoUrl?: string;
   businessName?: string;
+  products?: Product[];
+  categoryImages?: Record<string, string>;
+  categoryNames?: Record<string, string>;
+  categoryDescriptions?: Record<string, string>;
+  customCategories?: CategoryInfo[];
 }
-
-const CATEGORIES: (ProductCategory | 'Todos')[] = [
-  'Todos',
-  'Panadería',
-  'Lácteos',
-  'Embutidos',
-  'Miel y Dulces',
-  'Papa Nativa',
-];
 
 export const Header: React.FC<Props> = ({
   searchQuery,
@@ -45,20 +42,25 @@ export const Header: React.FC<Props> = ({
   announcementBanner,
   logoUrl,
   businessName,
+  products = [],
+  categoryImages,
+  categoryNames,
+  categoryDescriptions,
+  customCategories,
 }) => {
   return (
     <header className={`sticky top-0 z-40 backdrop-blur-md transition-colors border-b ${
       isDarkMode 
-        ? 'bg-[#08100c]/90 border-[#1c3326] text-white' 
+        ? 'bg-[#08100c]/95 border-[#1c3326] text-white' 
         : 'bg-[#f7f9f6]/95 border-emerald-100 text-slate-900 shadow-xs'
     }`}>
       {/* Top Banner Notice */}
-      <div className="bg-gradient-to-r from-[#50a040] to-[#60b64d] text-white py-1 px-4 text-xs font-medium text-center flex items-center justify-center gap-2">
+      <div className="bg-gradient-to-r from-[#50a040] via-[#60b64d] to-[#388e28] text-white py-1 px-4 text-xs font-medium text-center flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
         <span>{announcementBanner || '🌱 Envíos a Abancay, Andahuaylas, Cusco, Lima y todo Apurímac directo de la hornada.'}</span>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
         {/* Main Header Bar */}
         <div className="flex items-center justify-between gap-3">
           
@@ -185,3 +187,4 @@ export const Header: React.FC<Props> = ({
     </header>
   );
 };
+

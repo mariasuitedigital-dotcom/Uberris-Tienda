@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { ProductCategory, Product, CategoryInfo } from '../types';
 import { cleanDirectImageUrl } from '../lib/supabase';
+import { IncaPatternBanner } from './IncaPatternBanner';
 
 interface CategoriesGridProps {
   products: Product[];
@@ -61,52 +62,82 @@ export const CategoriesGrid: React.FC<CategoriesGridProps> = ({
     : DEFAULT_CATEGORY_DEFINITIONS;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      {activeCategoriesList.map((cat) => {
-        const count = products.filter((p) => p.category === cat.id).length;
-        const customName = categoryNames?.[cat.id] || cat.name;
-        const customDesc = categoryDescriptions?.[cat.id] || cat.description;
-        const customUrl = categoryImages?.[cat.id];
-        const finalImgUrl = cleanDirectImageUrl(customUrl || '') || cat.imageUrl;
+    <div className={`relative rounded-2xl overflow-hidden p-3.5 sm:p-5 border transition-all ${
+      isDarkMode 
+        ? 'bg-[#0b1611] border-[#1c3326]' 
+        : 'bg-white border-emerald-100/80 shadow-md'
+    }`}>
+      {/* Header Section */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-4 rounded-full bg-emerald-500" />
+          <h2 className={`text-sm sm:text-base font-serif-craft font-bold tracking-tight ${
+            isDarkMode ? 'text-emerald-100' : 'text-slate-800'
+          }`}>
+            Explorar por Categorías
+          </h2>
+        </div>
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+          isDarkMode ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        }`}>
+          {activeCategoriesList.length} categorías
+        </span>
+      </div>
 
-        return (
-          <motion.div
-            key={cat.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onSelectCategory(cat.id as ProductCategory)}
-            className="group relative h-40 sm:h-52 rounded-3xl overflow-hidden cursor-pointer shadow-md border border-black/5"
-          >
-            {/* Image background */}
-            <img
-              src={finalImgUrl}
-              alt={customName}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = cat.imageUrl;
-              }}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
+      {/* Grid of Categories - Compact Layout */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3">
+        {activeCategoriesList.map((cat) => {
+          const count = products.filter((p) => p.category === cat.id).length;
+          const customName = categoryNames?.[cat.id] || cat.name;
+          const customDesc = categoryDescriptions?.[cat.id] || cat.description;
+          const customUrl = categoryImages?.[cat.id];
+          const finalImgUrl = cleanDirectImageUrl(customUrl || '') || cat.imageUrl;
 
-            {/* Gradient Overlay for high contrast legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent transition-opacity group-hover:opacity-90" />
+          return (
+            <motion.div
+              key={cat.id}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onSelectCategory(cat.id as ProductCategory)}
+              className="group relative h-28 sm:h-36 rounded-xl overflow-hidden cursor-pointer shadow-sm border border-black/5 transition-all duration-300 hover:shadow-md"
+            >
+              {/* Image background */}
+              <img
+                src={finalImgUrl}
+                alt={customName}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = cat.imageUrl;
+                }}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
 
-            {/* Text details */}
-            <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-end text-white">
-              <h3 className="font-serif-craft font-bold text-base sm:text-lg leading-tight group-hover:text-[#60b64d] transition-colors">
-                {customName}
-              </h3>
-              {customDesc && (
-                <p className="text-[11px] text-slate-300 font-normal line-clamp-1 mt-0.5 opacity-90">
-                  {customDesc}
-                </p>
-              )}
-              <p className="text-xs text-emerald-400 font-medium mt-1">
-                {count} {count === 1 ? 'opción' : 'opciones'}
-              </p>
-            </div>
-          </motion.div>
-        );
-      })}
+              {/* Gradient Overlay for high contrast legibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity group-hover:opacity-95" />
+
+              {/* Top Inca Accent Strip */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-amber-400 via-cyan-400 to-emerald-500 opacity-90" />
+
+              {/* Card Text details */}
+              <div className="absolute inset-0 p-2.5 sm:p-3 flex flex-col justify-end text-white">
+                <h3 className="font-serif-craft font-bold text-xs sm:text-sm leading-tight group-hover:text-emerald-300 transition-colors drop-shadow-sm line-clamp-1">
+                  {customName}
+                </h3>
+                {customDesc && (
+                  <p className="text-[10px] text-slate-300 font-normal line-clamp-1 mt-0.5 opacity-85">
+                    {customDesc}
+                  </p>
+                )}
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-400 font-medium">
+                    {count} {count === 1 ? 'opción' : 'opciones'}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 };
+

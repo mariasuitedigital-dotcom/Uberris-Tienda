@@ -10,6 +10,7 @@ import { FloatingBreadHero } from './components/FloatingBreadHero';
 import { HorizontalProductCard } from './components/HorizontalProductCard';
 import { CategoriesGrid } from './components/CategoriesGrid';
 import { SectionHeader } from './components/SectionHeader';
+import { AndeanDivider } from './components/AndeanDivider';
 import { BottomNav } from './components/BottomNav';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { SupabaseSyncModal } from './components/SupabaseSyncModal';
@@ -488,9 +489,12 @@ export default function App() {
   const pendingOrdersCount = orders.filter((o) => o.status === 'pendiente' || o.status === 'en_produccion').length;
 
   return (
-    <div className={`min-h-screen transition-colors ${
+    <div className={`min-h-screen transition-colors relative ${
       isDarkMode ? 'bg-[#08100c] text-slate-100' : 'bg-[#f7f9f6] text-slate-900'
     }`}>
+      {/* Fixed Subtle Andean Manto Pattern Layer */}
+      <div className="fixed inset-0 pointer-events-none z-0 manto-pattern-bg opacity-[0.06] dark:opacity-[0.07]" />
+
       {/* Header Bar */}
       <Header
         searchQuery={searchQuery}
@@ -508,75 +512,79 @@ export default function App() {
         announcementBanner={storeSettings.announcementBanner}
         logoUrl={storeSettings.logoUrl}
         businessName={storeSettings.businessName}
+        products={products}
+        categoryImages={storeSettings.categoryImages}
+        categoryNames={storeSettings.categoryNames}
+        categoryDescriptions={storeSettings.categoryDescriptions}
+        customCategories={storeSettings.customCategories}
       />
 
       {/* Main Content Area */}
       {currentView === 'catalog' ? (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10 mb-20">
+        <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-4 sm:space-y-6 mb-4 sm:mb-8">
           
           {/* Hero Banner with Apurímac Artisan Atmosphere */}
-          <FloatingBreadHero settings={storeSettings} isDarkMode={isDarkMode} />
+          <FloatingBreadHero 
+            settings={storeSettings} 
+            isDarkMode={isDarkMode}
+            products={products}
+            onSelectCategory={(cat) => {
+              setSelectedCategory(cat);
+              handleScrollToCatalog();
+            }}
+          />
+
+          <AndeanDivider label="Sabores Tradicionales de Apurímac" />
 
           {/* SECTION: LO MÁS PEDIDO */}
           {popularProducts.length > 0 && (
-            <section className="space-y-4">
-              <SectionHeader
-                title="Lo más pedido"
-                onViewAll={handleScrollToCatalog}
-              />
-              <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                {popularProducts.map((prod) => (
-                  <HorizontalProductCard
-                    key={`popular-${prod.id}`}
-                    product={prod}
-                    badgeType="popular"
-                    onAddToCart={handleAddToCart}
-                    onQuickView={setQuickViewProduct}
-                    isDarkMode={isDarkMode}
-                  />
-                ))}
-              </div>
-            </section>
+            <>
+              <section className="space-y-4">
+                <SectionHeader
+                  title="Lo más pedido"
+                  onViewAll={handleScrollToCatalog}
+                />
+                <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+                  {popularProducts.map((prod) => (
+                    <HorizontalProductCard
+                      key={`popular-${prod.id}`}
+                      product={prod}
+                      badgeType="popular"
+                      onAddToCart={handleAddToCart}
+                      onQuickView={setQuickViewProduct}
+                      isDarkMode={isDarkMode}
+                    />
+                  ))}
+                </div>
+              </section>
+              <AndeanDivider label="Ofertas & Promociones Especiales" />
+            </>
           )}
 
           {/* SECTION: PROMOCIONES */}
           {promoProducts.length > 0 && (
-            <section className="space-y-4">
-              <SectionHeader
-                title="Promociones"
-                onViewAll={handleScrollToCatalog}
-              />
-              <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                {promoProducts.map((prod) => (
-                  <HorizontalProductCard
-                    key={`promo-${prod.id}`}
-                    product={prod}
-                    badgeType="promo"
-                    onAddToCart={handleAddToCart}
-                    onQuickView={setQuickViewProduct}
-                    isDarkMode={isDarkMode}
-                  />
-                ))}
-              </div>
-            </section>
+            <>
+              <section className="space-y-4">
+                <SectionHeader
+                  title="Promociones"
+                  onViewAll={handleScrollToCatalog}
+                />
+                <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+                  {promoProducts.map((prod) => (
+                    <HorizontalProductCard
+                      key={`promo-${prod.id}`}
+                      product={prod}
+                      badgeType="promo"
+                      onAddToCart={handleAddToCart}
+                      onQuickView={setQuickViewProduct}
+                      isDarkMode={isDarkMode}
+                    />
+                  ))}
+                </div>
+              </section>
+              <AndeanDivider label="Catálogo Completo de Productos" />
+            </>
           )}
-
-          {/* SECTION: CATEGORÍAS */}
-          <section className="space-y-4">
-            <SectionHeader title="Categorías" />
-            <CategoriesGrid
-              products={products}
-              categoryImages={storeSettings?.categoryImages}
-              categoryNames={storeSettings?.categoryNames}
-              categoryDescriptions={storeSettings?.categoryDescriptions}
-              customCategories={storeSettings?.customCategories}
-              onSelectCategory={(cat) => {
-                setSelectedCategory(cat);
-                handleScrollToCatalog();
-              }}
-              isDarkMode={isDarkMode}
-            />
-          </section>
 
           {/* Catalog Header & Count */}
           <div id="catalogo-section" className="flex items-center justify-between pt-8 border-t border-slate-500/20">
@@ -627,6 +635,25 @@ export default function App() {
               ))}
             </div>
           )}
+
+          <AndeanDivider label="Nuestras Categorías Especiales" />
+
+          {/* SECTION: CATEGORÍAS (Al final de la página) */}
+          <section className="space-y-3">
+            <SectionHeader title="Categorías" />
+            <CategoriesGrid
+              products={products}
+              categoryImages={storeSettings?.categoryImages}
+              categoryNames={storeSettings?.categoryNames}
+              categoryDescriptions={storeSettings?.categoryDescriptions}
+              customCategories={storeSettings?.customCategories}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                handleScrollToCatalog();
+              }}
+              isDarkMode={isDarkMode}
+            />
+          </section>
         </main>
       ) : (
         /* Admin View Mode */

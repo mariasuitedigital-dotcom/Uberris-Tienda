@@ -17,6 +17,13 @@
   }
 }
 
+/* Custom Andean Manto Textile Overlay Pattern */
+.manto-pattern-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23888888' stroke-width='1.5'%3E%3Cpath d='M70 60h20v10h10v20h-10v10h-20v-10h-10v-20h10z'/%3E%3Crect x='75' y='75' width='10' height='10'/%3E%3Cpolygon points='30,10 50,30 30,50 10,30'/%3E%3Cpolygon points='30,17 43,30 30,43 17,30'/%3E%3Cpolygon points='130,10 150,30 130,50 110,30'/%3E%3Cpolygon points='130,17 143,30 130,43 117,30'/%3E%3Cpolygon points='30,110 50,130 30,150 10,130'/%3E%3Cpolygon points='130,110 150,130 130,150 110,130'/%3E%3Cpath d='M0 0h160M0 160h160' stroke-width='2'/%3E%3Cpath d='M5 70h15v20h-10v-10h5'/%3E%3Cpath d='M155 70h-15v20h10v-10h-5'/%3E%3Cpath d='M0 80l20 20 20-20M120 80l20 20 20-20'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
 /* Custom scrollbars for mobile horizontal category chips & drawer */
 ::-webkit-scrollbar {
   width: 6px;

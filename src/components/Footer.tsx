@@ -12,6 +12,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { StoreSettings } from '../types';
+import { IncaPatternBanner } from './IncaPatternBanner';
 
 interface FooterProps {
   settings: StoreSettings;
@@ -33,70 +34,25 @@ export const Footer: React.FC<FooterProps> = ({
         isDarkMode
           ? 'bg-[#09110d] border-[#1c3326] text-slate-300'
           : 'bg-[#faf8f5] border-[#e8dfd5] text-slate-700'
-      } pb-24 md:pb-12 pt-12 px-4 sm:px-6 lg:px-8`}
+      } pb-24 md:pb-12 pt-0 px-0`}
     >
-      <div className="max-w-7xl mx-auto">
-        {/* Top Badges / Guarantees */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pb-10 border-b border-slate-500/15">
-          <div
-            className={`p-3 sm:p-4 rounded-2xl border flex items-center gap-3 ${
-              isDarkMode ? 'bg-[#0e1a14] border-[#1c3326]' : 'bg-white border-[#ece3d9] shadow-xs'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-              <Wheat className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-xs sm:text-sm">Trigo 100% Andino</h4>
-              <p className="text-[11px] text-slate-400">Harina de los valles de Apurímac</p>
-            </div>
-          </div>
-
-          <div
-            className={`p-3 sm:p-4 rounded-2xl border flex items-center gap-3 ${
-              isDarkMode ? 'bg-[#0e1a14] border-[#1c3326]' : 'bg-white border-[#ece3d9] shadow-xs'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-xs sm:text-sm">Envíos Directos</h4>
-              <p className="text-[11px] text-slate-400">Abancay, Cusco, Lima y provincias</p>
-            </div>
-          </div>
-
-          <div
-            className={`p-3 sm:p-4 rounded-2xl border flex items-center gap-3 ${
-              isDarkMode ? 'bg-[#0e1a14] border-[#1c3326]' : 'bg-white border-[#ece3d9] shadow-xs'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-xs sm:text-sm">Horneado Diario</h4>
-              <p className="text-[11px] text-slate-400">Garantía de frescura y aroma</p>
-            </div>
-          </div>
-
-          <div
-            className={`p-3 sm:p-4 rounded-2xl border flex items-center gap-3 ${
-              isDarkMode ? 'bg-[#0e1a14] border-[#1c3326]' : 'bg-white border-[#ece3d9] shadow-xs'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-bold text-xs sm:text-sm">Calidad Tradicional</h4>
-              <p className="text-[11px] text-slate-400">Receta artesanal de antaño</p>
-            </div>
-          </div>
+      {/* Decorative Manto Inca Andean Banner near the bottom of the page */}
+      <div className="relative w-full h-9 sm:h-11 overflow-hidden shadow-md mb-3 sm:mb-5 border-b-2 border-amber-400/50">
+        <IncaPatternBanner height="100%" opacity={1} />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/60 pointer-events-none" />
+        <div className="absolute inset-0 flex items-center justify-between px-3 sm:px-8 max-w-7xl mx-auto">
+          <span className="text-[11px] sm:text-xs md:text-sm font-serif-craft font-extrabold text-amber-200 uppercase tracking-wider drop-shadow-md flex items-center gap-1.5 sm:gap-2 bg-black/85 backdrop-blur-md px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full border border-amber-400/60 shadow-md">
+            <span className="text-amber-400">✦</span> Productos naturales y bebidas con el sabor auténtico de los Andes
+          </span>
+          <span className="text-xs sm:text-sm font-serif-craft font-extrabold text-amber-200 uppercase tracking-wider drop-shadow-md hidden lg:flex items-center gap-2 bg-black/85 backdrop-blur-md px-3.5 py-1 rounded-full border border-amber-400/60 shadow-md">
+            Uberris <span className="text-amber-400">✦</span> Apurímac en tu Mesa
+          </span>
         </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 py-4 sm:py-6">
           {/* Column 1: Brand & Bio */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
