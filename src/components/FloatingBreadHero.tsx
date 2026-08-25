@@ -5,6 +5,8 @@ import { StoreSettings, ProductCategory, Product } from '../types';
 import { cleanDirectImageUrl } from './AdminPanel';
 import { IncaPatternBanner } from './IncaPatternBanner';
 
+import { getMergedCategories } from '../utils/categories';
+
 interface FloatingBreadHeroProps {
   isDarkMode: boolean;
   settings?: StoreSettings;
@@ -82,30 +84,7 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
     },
   ];
 
-  const getCategoryInfo = (catId: ProductCategory, index: number) => {
-    const base = categoryData.find((c) => c.id === catId) || categoryData[index % categoryData.length];
-    const name = settings?.categoryNames?.[catId] || base.defaultName;
-    const desc = settings?.categoryDescriptions?.[catId] || base.defaultDesc;
-    const customImg = settings?.categoryImages?.[catId];
-
-    let img = cleanDirectImageUrl(customImg || '');
-    if (!img) {
-      if (index === 0) img = cleanDirectImageUrl(settings?.heroImage1 || '') || base.defaultImage;
-      else if (index === 1) img = cleanDirectImageUrl(settings?.heroImage2 || '') || base.defaultImage;
-      else if (index === 2) img = cleanDirectImageUrl(settings?.heroImage3 || '') || base.defaultImage;
-      else img = base.defaultImage;
-    }
-
-    const count = products.filter((p) => p.category === catId).length;
-
-    return { ...base, name, desc, img, count };
-  };
-
-  const cat1 = getCategoryInfo('Panadería', 0);
-  const cat2 = getCategoryInfo('Lácteos', 1);
-  const cat3 = getCategoryInfo('Embutidos', 2);
-  const cat4 = getCategoryInfo('Miel y Dulces', 3);
-  const cat5 = getCategoryInfo('Papa Nativa', 4);
+  const mergedCategories = getMergedCategories(settings, products);
 
   return (
     <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 shadow-xl ${
@@ -192,15 +171,15 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
 
           {/* Grid of Circular Categories with text BELOW circles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-3 sm:gap-x-4 items-start justify-items-center relative z-10 max-w-xl mx-auto">
-            {[cat1, cat2, cat3, cat4, cat5].map((cat, idx) => (
+            {mergedCategories.map((cat, idx) => (
               <motion.div
                 key={cat.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * idx }}
+                transition={{ duration: 0.5, delay: 0.08 * idx }}
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => onSelectCategory?.(cat.id)}
+                onClick={() => onSelectCategory?.(cat.id as ProductCategory)}
                 className="group flex flex-col items-center cursor-pointer select-none text-center"
               >
                 {/* Circle Container with Pastel Light-Blue Background (#dceefb) */}
@@ -210,10 +189,13 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
                     : 'border-emerald-600/70 group-hover:border-emerald-500 shadow-emerald-900/10'
                 }`}>
                   <img
-                    src={cat.img}
+                    src={cat.imageUrl}
                     alt={cat.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500 shadow-xs"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+                    }}
                   />
                 </div>
 
@@ -225,11 +207,13 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
                 </span>
                 
                 {/* Short Subtitle */}
-                <span className={`text-[10px] sm:text-xs line-clamp-1 max-w-[110px] mt-0.5 font-medium ${
-                  isDarkMode ? 'text-slate-300/80' : 'text-slate-600'
-                }`}>
-                  {cat.desc}
-                </span>
+                {cat.description && (
+                  <span className={`text-[10px] sm:text-xs line-clamp-1 max-w-[110px] mt-0.5 font-medium ${
+                    isDarkMode ? 'text-slate-300/80' : 'text-slate-600'
+                  }`}>
+                    {cat.description}
+                  </span>
+                )}
               </motion.div>
             ))}
           </div>

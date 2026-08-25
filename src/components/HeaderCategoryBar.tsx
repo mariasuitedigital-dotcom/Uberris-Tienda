@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Store, Check, Sparkles } from 'lucide-react'
 import { ProductCategory, Product, CategoryInfo } from '../types';
 import { cleanDirectImageUrl } from '../lib/supabase';
 import { IncaPatternBanner } from './IncaPatternBanner';
+import { getMergedCategories } from '../utils/categories';
 
 interface HeaderCategoryBarProps {
   products: Product[];
@@ -51,6 +52,7 @@ export const HeaderCategoryBar: React.FC<HeaderCategoryBarProps> = ({
   isDarkMode,
   categoryImages,
   categoryNames,
+  categoryDescriptions,
   customCategories,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,21 +69,15 @@ export const HeaderCategoryBar: React.FC<HeaderCategoryBarProps> = ({
   };
 
   // Build items list
-  const activeCustomList = (customCategories && customCategories.length > 0)
-    ? customCategories.filter(c => c.active !== false)
-    : null;
-
-  const categoriesToRender = activeCustomList
-    ? activeCustomList.map(c => ({
-        id: c.id as ProductCategory,
-        name: categoryNames?.[c.id] || c.name,
-        imageUrl: cleanDirectImageUrl(categoryImages?.[c.id] || '') || c.imageUrl,
-      }))
-    : DEFAULT_CATEGORIES.map(c => ({
-        id: c.id,
-        name: categoryNames?.[c.id] || c.defaultName,
-        imageUrl: cleanDirectImageUrl(categoryImages?.[c.id] || '') || c.defaultUrl,
-      }));
+  const categoriesToRender = getMergedCategories(
+    {
+      categoryNames,
+      categoryImages,
+      categoryDescriptions,
+      customCategories,
+    },
+    products
+  );
 
   const totalProductsCount = products.length;
 

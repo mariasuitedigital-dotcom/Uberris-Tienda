@@ -640,6 +640,7 @@ export default function App() {
           <section>
             <CategoriesGrid
               products={products}
+              settings={storeSettings}
               categoryImages={storeSettings?.categoryImages}
               categoryNames={storeSettings?.categoryNames}
               categoryDescriptions={storeSettings?.categoryDescriptions}
