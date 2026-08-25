@@ -638,9 +638,8 @@ export default function App() {
 
           <AndeanDivider label="Nuestras Categorías Especiales" />
 
-          {/* SECTION: CATEGORÍAS (Al final de la página) */}
-          <section className="space-y-3">
-            <SectionHeader title="Categorías" />
+          {/* SECTION: CATEGORÍAS */}
+          <section>
             <CategoriesGrid
               products={products}
               categoryImages={storeSettings?.categoryImages}

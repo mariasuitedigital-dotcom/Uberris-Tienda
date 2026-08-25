@@ -108,28 +108,32 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
   const cat5 = getCategoryInfo('Papa Nativa', 4);
 
   return (
-    <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 shadow-2xl ${
+    <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 shadow-xl ${
       isDarkMode 
         ? 'bg-gradient-to-br from-[#06120c] via-[#0b1d14] to-[#08150e] border-amber-500/30 text-white shadow-emerald-950/40' 
-        : 'bg-gradient-to-br from-[#091811] via-[#0d2319] to-[#07130e] border-amber-500/40 text-white shadow-xl'
+        : 'bg-gradient-to-br from-[#ffffff] via-[#f7fbf4] to-[#edf4e6] border-emerald-200 text-slate-900 shadow-lg'
     }`}>
       
       {/* Background Subtle Inca Pattern Watermark */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-3xl">
-        <IncaPatternBanner height="100%" opacity={0.15} />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#07140e]/95 via-[#0d2319]/80 to-[#07140e]/90" />
+        <IncaPatternBanner height="100%" opacity={isDarkMode ? 0.15 : 0.08} />
+        <div className={`absolute inset-0 ${
+          isDarkMode
+            ? 'bg-gradient-to-r from-[#07140e]/95 via-[#0d2319]/80 to-[#07140e]/90'
+            : 'bg-gradient-to-r from-white/95 via-white/80 to-[#f3f8ee]/90'
+        }`} />
       </div>
 
       {/* Decorative Top Woven Inca Tapestry Border */}
-      <div className="relative z-10 w-full h-4 sm:h-5 overflow-hidden border-b-2 border-amber-400/80 shadow-md flex items-center">
+      <div className="relative z-10 w-full h-4 sm:h-5 overflow-hidden border-b-2 border-amber-500/80 shadow-xs flex items-center">
         <IncaPatternBanner height="100%" opacity={1} />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-transparent to-black/25 pointer-events-none" />
+        <div className={`absolute inset-0 ${isDarkMode ? 'bg-black/25' : 'bg-white/10'} pointer-events-none`} />
       </div>
 
       {/* Ambient Lighting Glows */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -right-20 -top-20 w-96 h-96 rounded-full blur-[120px] opacity-25 bg-[#60b64d]/30" />
-        <div className="absolute -left-40 -bottom-40 w-[500px] h-[500px] rounded-full blur-[150px] opacity-20 bg-amber-500/20" />
+        <div className={`absolute -right-20 -top-20 w-96 h-96 rounded-full blur-[120px] opacity-25 ${isDarkMode ? 'bg-[#60b64d]/30' : 'bg-emerald-300/40'}`} />
+        <div className={`absolute -left-40 -bottom-40 w-[500px] h-[500px] rounded-full blur-[150px] opacity-20 ${isDarkMode ? 'bg-amber-500/20' : 'bg-amber-300/30'}`} />
       </div>
 
       {/* Main Responsive Grid Layout */}
@@ -143,9 +147,13 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-md border-amber-400/50 bg-amber-400/10 text-amber-300 backdrop-blur-xs"
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-xs backdrop-blur-xs ${
+              isDarkMode 
+                ? 'border-amber-400/50 bg-amber-400/10 text-amber-300' 
+                : 'border-emerald-700/30 bg-emerald-100 text-emerald-900'
+            }`}
           >
-            <Flame className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+            <Flame className={`w-3.5 h-3.5 animate-pulse ${isDarkMode ? 'text-amber-400' : 'text-emerald-700'}`} />
             <span>{settings?.heroTag || 'APURÍMAC EN TU MESA'}</span>
           </motion.div>
 
@@ -155,11 +163,17 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="font-serif-craft text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05] !font-serif text-white drop-shadow-md"
+              className={`font-serif-craft text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05] !font-serif ${
+                isDarkMode ? 'text-white drop-shadow-md' : 'text-slate-900'
+              }`}
             >
               {displayTitle.includes('Categorías') ? (
                 <>
-                  Categorías <span className="text-amber-300 bg-gradient-to-r from-amber-300 via-amber-400 to-[#60b64d] bg-clip-text text-transparent">Selectas</span>
+                  Categorías <span className={`bg-clip-text text-transparent ${
+                    isDarkMode 
+                      ? 'text-amber-300 bg-gradient-to-r from-amber-300 via-amber-400 to-[#60b64d]'
+                      : 'text-emerald-800 bg-gradient-to-r from-[#15803d] to-[#16a34a]'
+                  }`}>Selectas</span>
                 </>
               ) : (
                 displayTitle
@@ -172,217 +186,72 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-sm sm:text-lg leading-relaxed font-medium text-slate-200 opacity-95"
+            className={`text-sm sm:text-lg leading-relaxed font-medium ${
+              isDarkMode ? 'text-slate-200 opacity-95' : 'text-slate-700'
+            }`}
           >
             {settings?.heroSubtitle || 'productos naturales y bebidas con el sabor auténtico de los andes.'}
           </motion.p>
         </div>
 
-        {/* Right Column: Interactive Floating Category Circles Composition */}
-        <div className="flex lg:col-span-6 h-[320px] sm:h-[390px] md:h-[440px] w-full relative items-center justify-center z-10 mt-2 sm:mt-0">
+        {/* Right Column: Clean Category Circles Showcase (Matching Reference Design) */}
+        <div className="lg:col-span-6 w-full relative z-10 my-2 lg:my-0">
           
-          {/* Subtle Golden/Green Aura Circle behind everything */}
-          <div className="absolute w-56 sm:w-72 h-56 sm:h-72 rounded-full bg-radial from-[#60b64d]/25 to-transparent blur-3xl pointer-events-none" />
+          {/* Subtle Golden/Green Glow behind */}
+          <div className="absolute inset-0 bg-radial from-[#60b64d]/15 to-transparent blur-2xl pointer-events-none" />
 
-          {/* 1. Primary Central Category Circle: Panadería Artesanal */}
-          <motion.div
-            animate={{
-              y: [-10, 10],
-              rotate: [-1, 2]
-            }}
-            transition={{
-              y: { duration: 4.2, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              rotate: { duration: 6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }
-            }}
-            whileHover={{ scale: 1.08, zIndex: 40 }}
-            onClick={() => onSelectCategory?.(cat1.id)}
-            className="absolute z-20 w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-full cursor-pointer shadow-2xl overflow-hidden border-4 border-[#60b64d] group transition-all"
-          >
-            <img
-              src={cat1.img}
-              alt={cat1.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            {/* Dark glass gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-3 sm:p-4 text-white text-center">
-              <span className="text-base sm:text-xl mb-0.5">{cat1.icon}</span>
-              <p className="font-serif-craft font-extrabold text-xs sm:text-base leading-tight text-amber-300 drop-shadow-md">
-                {cat1.name}
-              </p>
-              <p className="text-[9px] sm:text-[11px] text-slate-200 opacity-90 line-clamp-1 mt-0.5">
-                {cat1.desc}
-              </p>
-              <span className="mt-1 inline-flex items-center justify-center gap-1 text-[9px] font-bold text-[#60b64d] bg-black/60 px-2 py-0.5 rounded-full mx-auto backdrop-blur-xs">
-                <span>Explorar</span>
-                <ArrowRight className="w-2.5 h-2.5" />
-              </span>
-            </div>
-          </motion.div>
+          {/* Grid of Circular Categories with text BELOW circles */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-3 sm:gap-x-4 items-start justify-items-center relative z-10 max-w-xl mx-auto">
+            {[cat1, cat2, cat3, cat4, cat5].map((cat, idx) => (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * idx }}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onSelectCategory?.(cat.id)}
+                className="group flex flex-col items-center cursor-pointer select-none text-center"
+              >
+                {/* Circle Container with Pastel Light-Blue Background (#dceefb) */}
+                <div className={`relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-[#dceefb] p-1.5 sm:p-2 border-2 shadow-md transition-all duration-300 flex items-center justify-center overflow-hidden ${
+                  isDarkMode 
+                    ? 'border-amber-400/80 group-hover:border-amber-300' 
+                    : 'border-emerald-600/70 group-hover:border-emerald-500 shadow-emerald-900/10'
+                }`}>
+                  <img
+                    src={cat.img}
+                    alt={cat.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500 shadow-xs"
+                  />
+                </div>
 
-          {/* 2. Secondary Category Circle (Top-Left): Quesería & Lácteos */}
-          <motion.div
-            animate={{
-              y: [8, -8],
-              rotate: [3, -2]
-            }}
-            transition={{
-              y: { duration: 3.6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              rotate: { duration: 5.2, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }
-            }}
-            whileHover={{ scale: 1.1, zIndex: 40 }}
-            onClick={() => onSelectCategory?.(cat2.id)}
-            className="absolute -left-1 sm:-left-3 md:-left-4 top-4 sm:top-8 z-10 w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full cursor-pointer shadow-xl overflow-hidden border-3 border-amber-400 group transition-all"
-          >
-            <img
-              src={cat2.img}
-              alt={cat2.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-2 sm:p-3 text-white text-center">
-              <span className="text-sm sm:text-base">{cat2.icon}</span>
-              <p className="font-serif-craft font-bold text-[11px] sm:text-xs text-amber-200 leading-tight">
-                {cat2.name}
-              </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-200 opacity-80 line-clamp-1">
-                {cat2.desc}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* 3. Tertiary Category Circle (Bottom-Right): Embutidos & Carnes */}
-          <motion.div
-            animate={{
-              y: [-6, 6],
-              x: [-3, 3],
-              rotate: [-4, 4]
-            }}
-            transition={{
-              y: { duration: 4.8, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              x: { duration: 3.9, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              rotate: { duration: 6.5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }
-            }}
-            whileHover={{ scale: 1.1, zIndex: 40 }}
-            onClick={() => onSelectCategory?.(cat3.id)}
-            className="absolute -right-1 sm:-right-2 md:-right-4 bottom-4 sm:bottom-8 z-10 w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full cursor-pointer shadow-xl overflow-hidden border-3 border-rose-400 group transition-all"
-          >
-            <img
-              src={cat3.img}
-              alt={cat3.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-2 sm:p-3 text-white text-center">
-              <span className="text-sm sm:text-base">{cat3.icon}</span>
-              <p className="font-serif-craft font-bold text-[11px] sm:text-xs text-rose-200 leading-tight">
-                {cat3.name}
-              </p>
-              <p className="text-[8px] sm:text-[10px] text-slate-200 opacity-80 line-clamp-1">
-                {cat3.desc}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* 4. Fourth Category Circle (Top-Right): Miel & Dulces */}
-          <motion.div
-            animate={{
-              y: [-7, 7],
-              x: [3, -3],
-              rotate: [-2, 3]
-            }}
-            transition={{
-              y: { duration: 5.1, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              x: { duration: 4.3, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              rotate: { duration: 5.8, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }
-            }}
-            whileHover={{ scale: 1.1, zIndex: 40 }}
-            onClick={() => onSelectCategory?.(cat4.id)}
-            className="absolute -right-2 sm:right-1 md:right-2 top-2 sm:top-4 z-15 w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full cursor-pointer shadow-xl overflow-hidden border-3 border-amber-500 group transition-all"
-          >
-            <img
-              src={cat4.img}
-              alt={cat4.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-1.5 sm:p-2.5 text-white text-center">
-              <span className="text-xs sm:text-base">{cat4.icon}</span>
-              <p className="font-serif-craft font-bold text-[10px] sm:text-xs text-amber-300 leading-tight">
-                {cat4.name}
-              </p>
-              <p className="text-[7px] sm:text-[9px] text-slate-200 opacity-80 line-clamp-1">
-                {cat4.desc}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* 5. Fifth Category Circle (Bottom-Left): Papa Nativa */}
-          <motion.div
-            animate={{
-              y: [6, -6],
-              x: [-4, 4],
-              rotate: [2, -3]
-            }}
-            transition={{
-              y: { duration: 4.5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              x: { duration: 3.8, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' },
-              rotate: { duration: 6.2, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }
-            }}
-            whileHover={{ scale: 1.1, zIndex: 40 }}
-            onClick={() => onSelectCategory?.(cat5.id)}
-            className="absolute -left-2 sm:left-1 md:left-2 bottom-2 sm:bottom-4 z-15 w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full cursor-pointer shadow-xl overflow-hidden border-3 border-emerald-500 group transition-all"
-          >
-            <img
-              src={cat5.img}
-              alt={cat5.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-1.5 sm:p-2.5 text-white text-center">
-              <span className="text-xs sm:text-base">{cat5.icon}</span>
-              <p className="font-serif-craft font-bold text-[10px] sm:text-xs text-emerald-300 leading-tight">
-                {cat5.name}
-              </p>
-              <p className="text-[7px] sm:text-[9px] text-slate-200 opacity-80 line-clamp-1">
-                {cat5.desc}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Sparkles / Wheat Decorative Accents */}
-          <motion.div
-            animate={{
-              y: [-10, 10],
-              x: [6, -6],
-              rotate: [0, 360]
-            }}
-            transition={{ duration: 7, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-            className="absolute top-2 left-1/2 z-0 text-amber-400 opacity-75"
-          >
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-          </motion.div>
-
-          <motion.div
-            animate={{
-              y: [8, -8],
-              x: [-6, 6],
-              rotate: [-15, 15]
-            }}
-            transition={{ duration: 5.5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-            className="absolute bottom-1 right-1/3 z-0 text-[#60b64d] opacity-60"
-          >
-            <Wheat className="w-5 h-5 sm:w-6 sm:h-6" />
-          </motion.div>
+                {/* Category Label BELOW the circle */}
+                <span className={`mt-2 text-xs sm:text-sm font-extrabold transition-colors max-w-[120px] leading-tight ${
+                  isDarkMode ? 'text-amber-200 group-hover:text-amber-300' : 'text-slate-900 group-hover:text-[#15803d]'
+                }`}>
+                  {cat.name}
+                </span>
+                
+                {/* Short Subtitle */}
+                <span className={`text-[10px] sm:text-xs line-clamp-1 max-w-[110px] mt-0.5 font-medium ${
+                  isDarkMode ? 'text-slate-300/80' : 'text-slate-600'
+                }`}>
+                  {cat.desc}
+                </span>
+              </motion.div>
+            ))}
+          </div>
 
         </div>
 
       </div>
 
       {/* Decorative Bottom Woven Inca Tapestry Border */}
-      <div className="relative z-10 w-full h-5 sm:h-6 overflow-hidden border-t-2 border-amber-400 shadow-md flex items-center">
+      <div className="relative z-10 w-full h-5 sm:h-6 overflow-hidden border-t-2 border-amber-500 shadow-md flex items-center">
         <IncaPatternBanner height="100%" opacity={1} />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20 pointer-events-none" />
+        <div className={`absolute inset-0 ${isDarkMode ? 'bg-black/20' : 'bg-white/10'} pointer-events-none`} />
       </div>
 
     </div>
