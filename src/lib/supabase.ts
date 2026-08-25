@@ -1206,6 +1206,32 @@ export const subscribeToSupabaseSettings = (onDataChange: () => void) => {
   };
 };
 
+export const dbSaveCategory = async (categoryData: { id: string; name: string; description?: string; image_url?: string; icon?: string }) => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('categories').upsert(categoryData);
+    if (error) console.warn('Supabase category upsert notice:', error.message);
+    return !error;
+  } catch (err) {
+    console.error('Error saving category to DB:', err);
+    return false;
+  }
+};
+
+export const dbDeleteCategory = async (id: string) => {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) console.warn('Supabase category delete notice:', error.message);
+    return !error;
+  } catch (err) {
+    console.error('Error deleting category from DB:', err);
+    return false;
+  }
+};
+
 /**
  * Utility to convert base64 dataUrl to Blob for Supabase Storage uploads
  */

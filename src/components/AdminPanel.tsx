@@ -45,7 +45,9 @@ import {
   EyeOff,
   Image as ImageIcon,
   Upload,
-  Info
+  Info,
+  FolderPlus,
+  Tag
 } from 'lucide-react';
 import {
   isSupabaseConnected,
@@ -55,7 +57,9 @@ import {
   SUPABASE_SQL_CATEGORIES_MIGRATION,
   uploadImageToSupabaseStorage,
   dataURLToBlob,
-  cleanDirectImageUrl
+  cleanDirectImageUrl,
+  dbSaveCategory,
+  dbDeleteCategory
 } from '../lib/supabase';
 import {
   Product,
@@ -167,6 +171,131 @@ export const AdminPanel: React.FC<Props> = ({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
   const [copiedCategoriesSql, setCopiedCategoriesSql] = useState(false);
+
+  // Category Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategoryForm, setEditingCategoryForm] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    imageUrl: string;
+    isNew?: boolean;
+  }>({ id: '', name: '', description: '', imageUrl: '', isNew: true });
+
+  const openNewCategoryModal = () => {
+    setEditingCategoryForm({
+      id: '',
+      name: '',
+      description: '',
+      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
+      isNew: true,
+    });
+    setIsCategoryModalOpen(true);
+  };
+
+  const openEditCategoryModal = (catItem: { id: string; name: string; description: string; imageUrl: string }) => {
+    setEditingCategoryForm({
+      id: catItem.id,
+      name: catItem.name,
+      description: catItem.description,
+      imageUrl: catItem.imageUrl,
+      isNew: false,
+    });
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = (editingCategoryForm.name || '').trim();
+    if (!trimmedName) {
+      onShowToast('Nombre Requerido', 'Por favor ingresa un nombre para la categoría.', 'error');
+      return;
+    }
+
+    const catId = editingCategoryForm.id.trim() || trimmedName;
+    const cleanedImg = cleanDirectImageUrl(editingCategoryForm.imageUrl || '');
+
+    const updatedNames = { ...(editingSettings.categoryNames || {}), [catId]: trimmedName };
+    const updatedDescs = { ...(editingSettings.categoryDescriptions || {}), [catId]: editingCategoryForm.description || '' };
+    const updatedImages = { ...(editingSettings.categoryImages || {}), [catId]: cleanedImg || editingCategoryForm.imageUrl || '' };
+
+    const existingCustom = editingSettings.customCategories || [];
+    let updatedCustom = [...existingCustom];
+    const customIdx = updatedCustom.findIndex(c => c.id === catId);
+
+    const newCatObj: CategoryInfo = {
+      id: catId as any,
+      name: trimmedName,
+      description: editingCategoryForm.description || '',
+      imageUrl: cleanedImg || editingCategoryForm.imageUrl || '',
+      active: true,
+    };
+
+    if (customIdx >= 0) {
+      updatedCustom[customIdx] = newCatObj;
+    } else {
+      updatedCustom.push(newCatObj);
+    }
+
+    const newSettings: StoreSettings = {
+      ...editingSettings,
+      categoryNames: updatedNames,
+      categoryDescriptions: updatedDescs,
+      categoryImages: updatedImages,
+      customCategories: updatedCustom,
+    };
+
+    setEditingSettings(newSettings);
+    if (onSaveSettings) {
+      onSaveSettings(newSettings);
+    }
+
+    if (isSupabaseConnected()) {
+      await dbSaveCategory({
+        id: catId,
+        name: trimmedName,
+        description: editingCategoryForm.description || '',
+        image_url: cleanedImg || editingCategoryForm.imageUrl || ''
+      });
+    }
+
+    setIsCategoryModalOpen(false);
+    onShowToast('¡Categoría Guardada!', `La categoría "${trimmedName}" ha sido guardada con éxito.`, 'success');
+  };
+
+  const handleDeleteCustomCategory = async (catId: string, catName: string) => {
+    if (!window.confirm(`¿Estás seguro de eliminar la categoría "${catName}"?`)) return;
+
+    const updatedNames = { ...(editingSettings.categoryNames || {}) };
+    delete updatedNames[catId];
+
+    const updatedDescs = { ...(editingSettings.categoryDescriptions || {}) };
+    delete updatedDescs[catId];
+
+    const updatedImages = { ...(editingSettings.categoryImages || {}) };
+    delete updatedImages[catId];
+
+    const updatedCustom = (editingSettings.customCategories || []).filter(c => c.id !== catId);
+
+    const newSettings: StoreSettings = {
+      ...editingSettings,
+      categoryNames: updatedNames,
+      categoryDescriptions: updatedDescs,
+      categoryImages: updatedImages,
+      customCategories: updatedCustom,
+    };
+
+    setEditingSettings(newSettings);
+    if (onSaveSettings) {
+      onSaveSettings(newSettings);
+    }
+
+    if (isSupabaseConnected()) {
+      await dbDeleteCategory(catId);
+    }
+
+    onShowToast('Categoría Eliminada', `La categoría "${catName}" fue eliminada.`, 'info');
+  };
 
   const handleCopyMigrationSql = () => {
     navigator.clipboard.writeText(SUPABASE_SQL_FOOTER_MIGRATION);
@@ -1109,6 +1238,15 @@ export const AdminPanel: React.FC<Props> = ({
 
             {/* Top Quick Actions */}
             <div className="flex items-center gap-1.5 shrink-0 no-print">
+              <button
+                onClick={openNewCategoryModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="Crear una nueva categoría de productos"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span className="inline">Nueva Categoría</span>
+              </button>
+
               <button
                 onClick={openNewProductModal}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
@@ -3534,33 +3672,6 @@ export const AdminPanel: React.FC<Props> = ({
                           Sube desde tu dispositivo o pega enlaces de las 3 imágenes circulares del banner principal.
                         </p>
                       </div>
-
-                      {isSupabaseConnected() && (
-                        <button
-                          type="button"
-                          onClick={handleCopyMigrationSql}
-                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
-                            copiedMigrationSql
-                              ? 'bg-emerald-500 text-white border-emerald-500'
-                              : isDarkMode
-                              ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/40'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs'
-                          }`}
-                        >
-                          {copiedMigrationSql ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-emerald-500" />}
-                          <span>{copiedMigrationSql ? '¡SQL Copiado!' : 'Copiar Script SQL Supabase'}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Notice box */}
-                    <div className={`p-3 rounded-xl border text-[11px] leading-relaxed flex items-start gap-2.5 ${
-                      isDarkMode ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-200' : 'bg-amber-50/80 border-amber-200 text-slate-800'
-                    }`}>
-                      <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <div>
-                        <strong>¿Cómo se guardan las imágenes?</strong> Tus cambios se guardan <u>de inmediato en tu tienda local</u>. Si usas Supabase y la nube no las guarda todavía, es porque tu tabla <code className="px-1 py-0.5 rounded bg-black/10 font-mono text-[10px]">store_settings</code> en Supabase necesita las 3 columnas de las imágenes. Haz clic arriba en <strong>"Copiar Script SQL Supabase"</strong> y pégalo en el <strong>SQL Editor</strong> de Supabase.
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -3706,217 +3817,208 @@ export const AdminPanel: React.FC<Props> = ({
                           <span>🏷️ Gestión de Categorías (Nombres, Descripciones y Fotos)</span>
                         </h4>
                         <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                          Personaliza los títulos, breves descripciones y fotos de cada tarjeta de categoría en el catálogo.
+                          Personaliza los títulos, breves descripciones y fotos de cada categoría o crea nuevas categorías para tu catálogo.
                         </p>
                       </div>
 
                       <button
                         type="button"
-                        onClick={handleCopyCategoriesSql}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
-                          copiedCategoriesSql
-                            ? 'bg-emerald-500 text-white border-emerald-500'
-                            : isDarkMode
-                            ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/30'
-                            : 'bg-white hover:bg-emerald-100 text-emerald-700 border-emerald-300 shadow-xs'
-                        }`}
+                        onClick={openNewCategoryModal}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-xs active:scale-95 cursor-pointer"
                       >
-                        {copiedCategoriesSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedCategoriesSql ? '¡SQL Copiado!' : 'Copiar Query Categorías Supabase'}</span>
+                        <FolderPlus className="w-4 h-4" />
+                        <span>➕ Crear Nueva Categoría</span>
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {[
-                        { id: 'Panadería', defaultName: 'Panadería Artesanal', defaultDesc: 'Panes tradicionales horneados a la leña', defaultUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Lácteos', defaultName: 'Quesería & Lácteos', defaultDesc: 'Quesos frescos, madurados y manjar blanco', defaultUrl: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Embutidos', defaultName: 'Embutidos & Carnes', defaultDesc: 'Chorizos, cecina y jamones artesanales', defaultUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Miel y Dulces', defaultName: 'Miel & Dulces', defaultDesc: 'Miel pura de abeja y mermeladas puras', defaultUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800' },
-                        { id: 'Papa Nativa', defaultName: 'Papa Nativa', defaultDesc: 'Variedades nativas cultivadas en altura', defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800' },
-                      ].map((catItem) => {
-                        const currentName = editingSettings.categoryNames?.[catItem.id] ?? catItem.defaultName;
-                        const currentDesc = editingSettings.categoryDescriptions?.[catItem.id] ?? catItem.defaultDesc;
-                        const currentUrl = editingSettings.categoryImages?.[catItem.id] || '';
-                        const displayUrl = cleanDirectImageUrl(currentUrl) || catItem.defaultUrl;
+                      {(() => {
+                        const defaultCategories = [
+                          { id: 'Panadería', defaultName: 'Panadería Artesanal', defaultDesc: 'Panes tradicionales horneados a la leña', defaultUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800' },
+                          { id: 'Lácteos', defaultName: 'Quesería & Lácteos', defaultDesc: 'Quesos frescos, madurados y manjar blanco', defaultUrl: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800' },
+                          { id: 'Embutidos', defaultName: 'Embutidos & Carnes', defaultDesc: 'Chorizos, cecina y jamones artesanales', defaultUrl: 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800' },
+                          { id: 'Miel y Dulces', defaultName: 'Miel & Dulces', defaultDesc: 'Miel pura de abeja y mermeladas puras', defaultUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800' },
+                          { id: 'Papa Nativa', defaultName: 'Papa Nativa', defaultDesc: 'Variedades nativas cultivadas en altura', defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800' },
+                        ];
 
-                        return (
-                          <div
-                            key={catItem.id}
-                            className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}
-                          >
-                            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                              <span className="text-xs font-bold text-emerald-500">ID: {catItem.id}</span>
-                              <span className="text-[10px] text-slate-400">Categoría</span>
-                            </div>
+                        const customList = (editingSettings.customCategories || []).map(c => ({
+                          id: c.id,
+                          defaultName: c.name,
+                          defaultDesc: c.description || '',
+                          defaultUrl: c.imageUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
+                          isCustom: true
+                        }));
 
-                            {/* Name Input */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Nombre de la Categoría
-                              </label>
-                              <input
-                                type="text"
-                                value={currentName}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setEditingSettings((prev) => ({
-                                    ...prev,
-                                    categoryNames: {
-                                      ...(prev.categoryNames || {}),
-                                      [catItem.id]: val
-                                    }
-                                  }));
-                                }}
-                                className={`w-full p-2 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#60b64d] ${
-                                  isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
-                                }`}
-                              />
-                            </div>
+                        const existingIds = new Set(defaultCategories.map(d => d.id));
+                        const extraCustom = customList.filter(c => !existingIds.has(c.id));
+                        const allCategoriesToRender = [...defaultCategories, ...extraCustom];
 
-                            {/* Description Input */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Descripción Corta
-                              </label>
-                              <input
-                                type="text"
-                                value={currentDesc}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setEditingSettings((prev) => ({
-                                    ...prev,
-                                    categoryDescriptions: {
-                                      ...(prev.categoryDescriptions || {}),
-                                      [catItem.id]: val
-                                    }
-                                  }));
-                                }}
-                                className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
-                                  isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
-                                }`}
-                              />
-                            </div>
+                        return allCategoriesToRender.map((catItem: any) => {
+                          const currentName = editingSettings.categoryNames?.[catItem.id] ?? catItem.defaultName;
+                          const currentDesc = editingSettings.categoryDescriptions?.[catItem.id] ?? catItem.defaultDesc;
+                          const currentUrl = editingSettings.categoryImages?.[catItem.id] || '';
+                          const displayUrl = cleanDirectImageUrl(currentUrl) || catItem.defaultUrl;
 
-                            {/* Image & URL Input */}
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Imagen de la Tarjeta
-                              </label>
-                              <div className="flex items-center gap-3">
-                                <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
-                                  <img
-                                    src={displayUrl}
-                                    alt={currentName}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = catItem.defaultUrl;
-                                    }}
-                                  />
+                          return (
+                            <div
+                              key={catItem.id}
+                              className={`p-3.5 rounded-2xl border space-y-3 ${isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'}`}
+                            >
+                              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                                <div className="flex items-center gap-1.5">
+                                  <Tag className="w-3.5 h-3.5 text-amber-500" />
+                                  <span className="text-xs font-bold text-emerald-500 truncate max-w-[140px]">
+                                    {catItem.id}
+                                  </span>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                  {catItem.isCustom && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteCustomCategory(catItem.id, currentName)}
+                                      className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                      title="Eliminar categoría creada"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <span className="text-[10px] text-slate-400 font-semibold bg-slate-800/40 px-1.5 py-0.5 rounded-md">
+                                    {catItem.isCustom ? 'Personalizada' : 'Predeterminada'}
+                                  </span>
+                                </div>
+                              </div>
 
-                                <div className="flex-1 space-y-1.5">
-                                  <input
-                                    type="text"
-                                    placeholder="URL de imagen (https://...)"
-                                    value={currentUrl}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setEditingSettings((prev) => ({
-                                        ...prev,
-                                        categoryImages: {
-                                          ...(prev.categoryImages || {}),
-                                          [catItem.id]: val
-                                        }
-                                      }));
-                                    }}
-                                    className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
-                                      isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
-                                    }`}
-                                  />
-                                  <div className="flex items-center gap-1.5">
-                                    <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
-                                      <Upload className="w-3 h-3" />
-                                      <span>Subir Foto</span>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleCategoryImageFileUpload(catItem.id, e)}
-                                        className="hidden"
-                                      />
-                                    </label>
-                                    {(currentUrl || editingSettings.categoryNames?.[catItem.id] || editingSettings.categoryDescriptions?.[catItem.id]) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingSettings((prev) => {
-                                            const updatedImgs = { ...(prev.categoryImages || {}) };
-                                            delete updatedImgs[catItem.id];
-                                            const updatedNames = { ...(prev.categoryNames || {}) };
-                                            delete updatedNames[catItem.id];
-                                            const updatedDescs = { ...(prev.categoryDescriptions || {}) };
-                                            delete updatedDescs[catItem.id];
-                                            return {
-                                              ...prev,
-                                              categoryImages: updatedImgs,
-                                              categoryNames: updatedNames,
-                                              categoryDescriptions: updatedDescs
-                                            };
-                                          });
-                                        }}
-                                        className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
-                                      >
-                                        Restablecer
-                                      </button>
-                                    )}
+                              {/* Name Input */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                  Nombre de la Categoría
+                                </label>
+                                <input
+                                  type="text"
+                                  value={currentName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditingSettings((prev) => ({
+                                      ...prev,
+                                      categoryNames: {
+                                        ...(prev.categoryNames || {}),
+                                        [catItem.id]: val
+                                      }
+                                    }));
+                                  }}
+                                  className={`w-full p-2 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#60b64d] ${
+                                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Description Input */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                  Descripción Corta
+                                </label>
+                                <input
+                                  type="text"
+                                  value={currentDesc}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditingSettings((prev) => ({
+                                      ...prev,
+                                      categoryDescriptions: {
+                                        ...(prev.categoryDescriptions || {}),
+                                        [catItem.id]: val
+                                      }
+                                    }));
+                                  }}
+                                  className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Image & URL Input */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                  Imagen de la Tarjeta
+                                </label>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
+                                    <img
+                                      src={displayUrl}
+                                      alt={currentName}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = catItem.defaultUrl;
+                                      }}
+                                    />
+                                  </div>
+
+                                  <div className="flex-1 space-y-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="URL de imagen (https://...)"
+                                      value={currentUrl}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setEditingSettings((prev) => ({
+                                          ...prev,
+                                          categoryImages: {
+                                            ...(prev.categoryImages || {}),
+                                            [catItem.id]: val
+                                          }
+                                        }));
+                                      }}
+                                      className={`w-full p-2 rounded-xl border text-[11px] focus:outline-none focus:border-[#60b64d] ${
+                                        isDarkMode ? 'bg-[#0a120e] border-[#1c3326] text-white' : 'bg-white border-slate-300 text-slate-900'
+                                      }`}
+                                    />
+                                    <div className="flex items-center gap-1.5">
+                                      <label className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                                        <Upload className="w-3 h-3" />
+                                        <span>Subir Foto</span>
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) => handleCategoryImageFileUpload(catItem.id, e)}
+                                          className="hidden"
+                                        />
+                                      </label>
+                                      {(currentUrl || editingSettings.categoryNames?.[catItem.id] || editingSettings.categoryDescriptions?.[catItem.id]) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingSettings((prev) => {
+                                              const updatedImgs = { ...(prev.categoryImages || {}) };
+                                              delete updatedImgs[catItem.id];
+                                              const updatedNames = { ...(prev.categoryNames || {}) };
+                                              delete updatedNames[catItem.id];
+                                              const updatedDescs = { ...(prev.categoryDescriptions || {}) };
+                                              delete updatedDescs[catItem.id];
+                                              return {
+                                                ...prev,
+                                                categoryImages: updatedImgs,
+                                                categoryNames: updatedNames,
+                                                categoryDescriptions: updatedDescs
+                                              };
+                                            });
+                                          }}
+                                          className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer ml-auto"
+                                        >
+                                          Restablecer
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Supabase SQL Migration Info Helper Box */}
-              {isSupabaseConnected() && (
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-                  isDarkMode ? 'bg-[#0d1712] border-emerald-500/20' : 'bg-emerald-50/70 border-emerald-200'
-                }`}>
-                  <div className="flex items-start gap-2.5">
-                    <Database className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold">Base de Datos Supabase Conectada</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-500">
-                          Sincronización Activa
-                        </span>
-                      </div>
-                      <p className={`text-[11px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                        Si creaste tu tabla antes, puedes actualizar sus columnas en Supabase copiando el script SQL rápido y ejecutándolo en tu SQL Editor.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyMigrationSql}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all border cursor-pointer active:scale-95 ${
-                      copiedMigrationSql
-                        ? 'bg-emerald-500 text-white border-emerald-500'
-                        : isDarkMode
-                        ? 'bg-[#15231c] hover:bg-[#1c3326] text-emerald-300 border-emerald-500/30'
-                        : 'bg-white hover:bg-emerald-100 text-emerald-700 border-emerald-300 shadow-xs'
-                    }`}
-                  >
-                    {copiedMigrationSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedMigrationSql ? '¡Copiado!' : 'Copiar Script SQL Rápido'}</span>
-                  </button>
-                </div>
-              )}
 
               {/* Submit / Save Button Bar */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#60b64d]/10 border border-[#60b64d]/30">
@@ -4807,7 +4909,132 @@ export const AdminPanel: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Modal Crear / Editar Categoría */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs no-print">
+          <div className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl transition-all ${
+            isDarkMode ? 'bg-[#0d1712] border-[#1c3326] text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-500/10 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                  <FolderPlus className="w-4 h-4" />
+                </div>
+                <h3 className="font-serif-craft text-base font-bold">
+                  {editingCategoryForm.isNew ? 'Nueva Categoría' : 'Editar Categoría'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategorySubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold block mb-1">Nombre de la Categoría *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Bebidas & Licores"
+                  value={editingCategoryForm.name}
+                  onChange={(e) => setEditingCategoryForm({ ...editingCategoryForm, name: e.target.value })}
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none focus:border-[#60b64d] ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Descripción Corta</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Jugos, mermeladas y bebidas artesanales"
+                  value={editingCategoryForm.description}
+                  onChange={(e) => setEditingCategoryForm({ ...editingCategoryForm, description: e.target.value })}
+                  className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none focus:border-[#60b64d] ${
+                    isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold block mb-1">Imagen de Portada (URL o Subir)</label>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-16 h-14 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-black/20 relative shadow-2xs">
+                    <img
+                      src={cleanDirectImageUrl(editingCategoryForm.imageUrl) || editingCategoryForm.imageUrl}
+                      alt="Previsualización"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800';
+                      }}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="https://images.unsplash.com/..."
+                    value={editingCategoryForm.imageUrl}
+                    onChange={(e) => setEditingCategoryForm({ ...editingCategoryForm, imageUrl: e.target.value })}
+                    className={`flex-1 p-2.5 text-xs rounded-xl border focus:outline-none focus:border-[#60b64d] ${
+                      isDarkMode ? 'bg-[#15231c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+
+                <label className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-2xs">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Subir Foto desde Dispositivo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      processAndUploadImage(file, 900, 0.88, 'cat_new', (finalUrl) => {
+                        setEditingCategoryForm((prev) => ({ ...prev, imageUrl: finalUrl }));
+                      });
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-slate-500/10">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className={`flex-1 py-2.5 rounded-xl border font-bold text-xs ${
+                    isDarkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#60b64d] hover:bg-[#50a040] text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  Guardar Categoría
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Buttons */}
       <div className="fixed bottom-5 right-5 z-40 no-print flex items-center gap-2">
+        <button
+          onClick={openNewCategoryModal}
+          className="flex items-center gap-2 px-3.5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-extrabold shadow-2xl active:scale-95 transition-all border border-white/20 cursor-pointer"
+          title="Crear una nueva categoría de productos"
+        >
+          <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          <span>+ CREAR CATEGORÍA</span>
+        </button>
         <button
           onClick={openNewProductModal}
           className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#60b64d] hover:bg-[#50a040] text-white text-sm font-extrabold shadow-2xl active:scale-95 transition-all border border-white/20 cursor-pointer animate-bounce"

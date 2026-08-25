@@ -534,8 +534,6 @@ export default function App() {
             }}
           />
 
-          <AndeanDivider label="Sabores Tradicionales de Apurímac" />
-
           {/* SECTION: LO MÁS PEDIDO */}
           {popularProducts.length > 0 && (
             <>

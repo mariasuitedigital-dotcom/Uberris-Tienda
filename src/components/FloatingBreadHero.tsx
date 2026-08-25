@@ -21,9 +21,9 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
 }) => {
   // Determine title
   const rawTitle = settings?.heroTitle || '';
-  const displayTitle = rawTitle
-    ? rawTitle.replace(/Abundancia/gi, 'Categorías')
-    : 'Categorías Selectas';
+  const displayTitle = (rawTitle && !rawTitle.includes('Categorías'))
+    ? rawTitle
+    : 'Abundancia Selecta';
 
   // Categories helper mapping
   const categoryData: {
@@ -114,13 +114,13 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
         : 'bg-gradient-to-br from-[#ffffff] via-[#f7fbf4] to-[#edf4e6] border-emerald-200 text-slate-900 shadow-lg'
     }`}>
       
-      {/* Background Subtle Inca Pattern Watermark */}
+      {/* Background Subtle Inca Pattern Watermark - Medium Transparency (Tapiz Textil) */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-3xl">
-        <IncaPatternBanner height="100%" opacity={isDarkMode ? 0.15 : 0.08} />
+        <IncaPatternBanner height="100%" opacity={isDarkMode ? 0.35 : 0.22} />
         <div className={`absolute inset-0 ${
           isDarkMode
-            ? 'bg-gradient-to-r from-[#07140e]/95 via-[#0d2319]/80 to-[#07140e]/90'
-            : 'bg-gradient-to-r from-white/95 via-white/80 to-[#f3f8ee]/90'
+            ? 'bg-gradient-to-r from-[#07140e]/85 via-[#0d2319]/50 to-[#07140e]/80'
+            : 'bg-gradient-to-r from-white/85 via-white/50 to-[#f3f8ee]/80'
         }`} />
       </div>
 
@@ -157,27 +157,17 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
             <span>{settings?.heroTag || 'APURÍMAC EN TU MESA'}</span>
           </motion.div>
 
-          {/* Headline displaying "Categorías Selectas" */}
+          {/* Headline displaying "Abundancia Selecta" in a single green color */}
           <div className="space-y-2 sm:space-y-3">
             <motion.h1 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
               className={`font-serif-craft text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05] !font-serif ${
-                isDarkMode ? 'text-white drop-shadow-md' : 'text-slate-900'
+                isDarkMode ? 'text-[#60b64d] drop-shadow-md' : 'text-[#15803d]'
               }`}
             >
-              {displayTitle.includes('Categorías') ? (
-                <>
-                  Categorías <span className={`bg-clip-text text-transparent ${
-                    isDarkMode 
-                      ? 'text-amber-300 bg-gradient-to-r from-amber-300 via-amber-400 to-[#60b64d]'
-                      : 'text-emerald-800 bg-gradient-to-r from-[#15803d] to-[#16a34a]'
-                  }`}>Selectas</span>
-                </>
-              ) : (
-                displayTitle
-              )}
+              {displayTitle}
             </motion.h1>
           </div>
 
@@ -253,7 +243,6 @@ export const FloatingBreadHero: React.FC<FloatingBreadHeroProps> = ({
         <IncaPatternBanner height="100%" opacity={1} />
         <div className={`absolute inset-0 ${isDarkMode ? 'bg-black/20' : 'bg-white/10'} pointer-events-none`} />
       </div>
-
     </div>
   );
 };
