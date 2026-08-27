@@ -243,7 +243,7 @@ ${itemsListText}-----------------------------------------
 📌 *Estado:* En breve enviaré mi comprobante/voucher de pago para procesar la hornada. ¡Muchas gracias!`;
 
     const encodedText = encodeURIComponent(waText);
-    const waNumber = '51983451220'; // Standard Uberris business line
+    const waNumber = settings?.whatsappPhone ? settings.whatsappPhone.replace(/[^0-9]/g, '') : '51983746281';
     const waUrl = `https://wa.me/${waNumber}?text=${encodedText}`;
 
     // Open WhatsApp
