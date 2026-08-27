@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation, ExternalLink, Package } from 'lucide-react';
+import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation, ExternalLink, Package, AlertCircle } from 'lucide-react';
 import { CartItem, Order, StoreSettings } from '../types';
 import { 
   PALOMINO_BRANCHES, 
@@ -95,10 +95,14 @@ export const CartDrawer: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+  const SHALOM_DISPATCH_FEE = 10.0;
+  const shippingFee = shippingType === 'shalom' ? SHALOM_DISPATCH_FEE : 0;
+
   const totalAmount = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
+  const grandTotal = totalAmount + shippingFee;
 
   const totalPackages = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -184,10 +188,10 @@ export const CartDrawer: React.FC<Props> = ({
       clientDni: clientDni.trim() || undefined,
       destinationCity: finalDestinationCity,
       status: 'pendiente',
-      total: totalAmount,
+      total: grandTotal,
       createdAt: formattedDate,
       notes: notes.trim() || undefined,
-      paymentMethod: paymentMethod === 'yape' ? 'Yape' : 'BCP',
+      paymentMethod: paymentMethod === 'yape' ? 'Yape' : paymentMethod === 'plin' ? 'Plin' : 'BCP',
       shippingType,
       shippingAgency: finalAgency,
       shippingBranch: finalBranch,
@@ -215,7 +219,11 @@ export const CartDrawer: React.FC<Props> = ({
       itemsListText += `${index + 1}. *${item.product.name}*\n   📦 ${item.quantity} ${item.product.unit}${unitsDetail} - S/ ${(item.product.price * item.quantity).toFixed(2)}\n`;
     });
 
-    const paymentInfo = paymentMethod === 'yape' ? 'Yape (932 220 326)' : 'Transferencia BCP Soles';
+    const paymentInfo = paymentMethod === 'yape' 
+      ? `Yape (${settings?.yapeNumber || '932 220 326'})` 
+      : paymentMethod === 'plin'
+      ? `Plin (${settings?.plinNumber || '983 746 281'})`
+      : `Transferencia BCP Soles (${settings?.bankAccountNumber || '30500617175095'})`;
 
     let shippingBlockText = '';
     if (shippingType === 'palomino') {
@@ -245,7 +253,8 @@ ${currentRiveraBranch.phone ? `📞 *Teléfono Counter:* ${currentRiveraBranch.p
 📍 *Ciudad / Destino:* ${shalomCity.trim()}
 🏢 *Sede / Agencia Shalom:* ${shalomBranchName.trim()}
 ⚡ *Modalidad:* Agencia a Agencia (Recojo con DNI)
-⚠️ *Flete:* Pago contra entrega en destino (Shalom)`;
+🚚 *Pago a Uberris:* Traslado Uripa a Andahuaylas a Shalom (+S/ 10.00)
+⚠️ *Flete Interprovincial:* Pago contra entrega en ventanilla Shalom al retirar`;
     } else if (shippingType === 'agencia_nacional') {
       shippingBlockText = 
 `🚚 *ENVÍO POR AGENCIA NACIONAL (Selva Central):*
@@ -263,6 +272,10 @@ ${currentRiveraBranch.phone ? `📞 *Teléfono Counter:* ${currentRiveraBranch.p
 ⚠️ *Flete:* Pago contra entrega en destino`;
     }
 
+    const totalsBreakdownText = shippingType === 'shalom'
+      ? `🥖 *Subtotal Productos:* S/ ${totalAmount.toFixed(2)}\n🚚 *Pago a Uberris (Traslado Uripa a Andahuaylas a Shalom):* S/ 10.00\n💰 *TOTAL A ABONAR A UBERRIS:* S/ ${grandTotal.toFixed(2)}`
+      : `💰 *TOTAL A ABONAR A UBERRIS:* S/ ${grandTotal.toFixed(2)}`;
+
     const waText = 
 `🌟 *NUEVO PEDIDO DE PRODUCTOS ARTESANALES - UBERRIS* 🌟
 -----------------------------------------
@@ -275,7 +288,7 @@ ${shippingBlockText}
 ${notes.trim() ? `-----------------------------------------\n📝 *Notas:* ${notes.trim()}\n` : ''}-----------------------------------------
 🥖 *DETALLE DE SU HORNADA:*
 ${itemsListText}-----------------------------------------
-💰 *TOTAL PRODUCTOS:* S/ ${totalAmount.toFixed(2)}
+${totalsBreakdownText}
 💳 *Método de Pago:* ${paymentInfo}
 📌 *Estado:* En breve enviaré mi comprobante/voucher de pago para procesar la hornada. ¡Muchas gracias!`;
 
@@ -707,7 +720,9 @@ ${itemsListText}-----------------------------------------
                     >
                       <Package className="w-4 h-4 text-red-500" />
                       <span className="leading-tight text-[11px] font-bold">Shalom</span>
-                      <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black tracking-wide">TODO EL PERÚ</span>
+                      <span className="text-[7.5px] px-1 py-0.2 rounded-full bg-red-600 text-white font-black tracking-wider uppercase">
+                        Todo Perú (+S/10)
+                      </span>
                     </button>
 
                     <button
@@ -1060,15 +1075,35 @@ ${itemsListText}-----------------------------------------
                         </div>
                       </div>
 
+                      {/* Notice for Shalom: Traslado Uripa a Andahuaylas */}
+                      <div className={`p-3 rounded-xl border flex flex-col gap-1.5 ${
+                        isDarkMode 
+                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-100' 
+                          : 'bg-amber-50 border-amber-300 text-amber-950'
+                      }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-extrabold text-xs text-amber-900 dark:text-amber-200">
+                            <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>Pago a Uberris: Traslado Uripa a Andahuaylas a Shalom</span>
+                          </div>
+                          <span className="font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-100 border border-amber-500/30 text-xs shrink-0">
+                            + S/ 10.00
+                          </span>
+                        </div>
+                        <p className="text-[11px] opacity-90 leading-tight">
+                          El adicional de <strong>S/ 10.00 se abona a Uberris</strong> por el traslado de su pedido desde Uripa hasta la agencia Shalom en Andahuaylas.
+                        </p>
+                      </div>
+
                       {/* Compact Micro Notice */}
                       <div className={`px-2.5 py-1.5 rounded-lg border text-[10px] flex items-center justify-between gap-1.5 ${
                         isDarkMode ? 'bg-red-950/20 border-red-500/20 text-red-300' : 'bg-red-50 border-red-200 text-red-900'
                       }`}>
                         <div className="flex items-center gap-1">
                           <Info className="w-3 h-3 text-red-500 shrink-0" />
-                          <span>Retiro con <strong>DNI en ventanilla</strong></span>
+                          <span>Retiro con <strong>DNI del titular en ventanilla</strong></span>
                         </div>
-                        <span className="font-semibold text-[9px] opacity-80">Flete pago en destino</span>
+                        <span className="font-semibold text-[9px] opacity-80">Flete Shalom se paga en ventanilla al retirar</span>
                       </div>
                     </div>
                   )}
@@ -1502,13 +1537,43 @@ ${itemsListText}-----------------------------------------
                   />
                 </div>
 
-                {/* Submit button */}
+                {/* Submit button & Totals Summary */}
                 <div className="pt-2">
-                  <div className="flex items-center justify-between mb-3 text-sm">
-                    <span className={`font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Total a Pagar:</span>
-                    <span className="font-serif-craft text-2xl font-bold text-[#60b64d]">
-                      S/ {totalAmount.toFixed(2)}
-                    </span>
+                  <div className={`p-3 rounded-xl border mb-3 space-y-2 ${
+                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Subtotal Productos:</span>
+                      <span className="font-bold">S/ {totalAmount.toFixed(2)}</span>
+                    </div>
+
+                    {shippingType === 'shalom' && (
+                      <div className="flex items-center justify-between text-xs text-amber-600 dark:text-amber-400 font-semibold animate-in fade-in">
+                        <span className="flex items-center gap-1">
+                          <Truck className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Pago a Uberris: Traslado Uripa a Andahuaylas a Shalom:</span>
+                        </span>
+                        <span>+ S/ {SHALOM_DISPATCH_FEE.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-slate-200/20 flex items-center justify-between">
+                      <div>
+                        <span className={`text-xs sm:text-sm font-bold block ${
+                          isDarkMode ? 'text-slate-200' : 'text-slate-900'
+                        }`}>
+                          Total a Pagar a Uberris:
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {shippingType === 'shalom' 
+                            ? 'Incluye productos + traslado Uripa a Andahuaylas a Shalom' 
+                            : 'Flete de viaje se abona en agencia destino'}
+                        </span>
+                      </div>
+                      <span className="font-serif-craft text-2xl font-black text-[#60b64d]">
+                        S/ {grandTotal.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
                   <button
