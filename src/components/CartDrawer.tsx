@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation, ExternalLink } from 'lucide-react';
+import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation, ExternalLink, Package } from 'lucide-react';
 import { CartItem, Order, StoreSettings } from '../types';
 import { 
   PALOMINO_BRANCHES, 
@@ -43,12 +43,17 @@ export const CartDrawer: React.FC<Props> = ({
   // Form fields
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [clientDni, setClientDni] = useState('');
+  
+  // Shalom specific inputs
+  const [shalomCity, setShalomCity] = useState('');
+  const [shalomBranchName, setShalomBranchName] = useState('');
   
   // Dispatch Day State
   const [dispatchDay, setDispatchDay] = useState<'Martes' | 'Viernes'>('Martes');
 
   // Shipping State
-  const [shippingType, setShippingType] = useState<'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'agency' | 'store_pickup'>('palomino');
+  const [shippingType, setShippingType] = useState<'palomino' | 'rivera_cargo' | 'shalom' | 'agencia_nacional' | 'agencia_molina' | 'agency' | 'store_pickup'>('palomino');
   const [selectedPalominoId, setSelectedPalominoId] = useState<string>('arriola');
   const [selectedRiveraId, setSelectedRiveraId] = useState<string>('rc_luna_pizarro');
   const [selectedNacionalId, setSelectedNacionalId] = useState<string>('nac_pichanaki');
@@ -106,6 +111,21 @@ export const CartDrawer: React.FC<Props> = ({
       return;
     }
 
+    if (shippingType === 'shalom') {
+      if (!clientDni.trim() || clientDni.trim().length < 8) {
+        setFormError('Para envíos por Shalom es obligatorio ingresar el DNI del titular (mínimo 8 dígitos).');
+        return;
+      }
+      if (!shalomCity.trim()) {
+        setFormError('Por favor ingresa la ciudad o departamento de destino para Shalom.');
+        return;
+      }
+      if (!shalomBranchName.trim()) {
+        setFormError('Por favor ingresa el nombre o dirección de la sede Shalom de recojo.');
+        return;
+      }
+    }
+
     if (!paymentMethod) {
       setFormError('Por favor selecciona tu método de pago (Yape o BCP).');
       return;
@@ -132,6 +152,12 @@ export const CartDrawer: React.FC<Props> = ({
       finalBranch = currentRiveraBranch.name;
       finalShippingAddress = currentRiveraBranch.address;
       finalShippingNotice = `${currentRiveraBranch.dispatchSchedule} | ${currentRiveraBranch.arrivalNotice}${currentRiveraBranch.phone ? ` | Tel: ${currentRiveraBranch.phone}` : ''} | Flete a pagar en destino`;
+    } else if (shippingType === 'shalom') {
+      finalDestinationCity = shalomCity.trim();
+      finalAgency = 'Shalom Empresarial';
+      finalBranch = shalomBranchName.trim();
+      finalShippingAddress = `Sede Shalom: ${shalomBranchName.trim()} (${shalomCity.trim()})`;
+      finalShippingNotice = `DNI Titular: ${clientDni.trim()} | Sede: ${shalomBranchName.trim()} | Flete pago contra entrega en agencia`;
     } else if (shippingType === 'agencia_nacional') {
       finalDestinationCity = currentNacionalBranch.name;
       finalAgency = 'Agencia Nacional';
@@ -155,6 +181,7 @@ export const CartDrawer: React.FC<Props> = ({
       id: newOrderId,
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim(),
+      clientDni: clientDni.trim() || undefined,
       destinationCity: finalDestinationCity,
       status: 'pendiente',
       total: totalAmount,
@@ -209,6 +236,16 @@ export const CartDrawer: React.FC<Props> = ({
 ${currentRiveraBranch.phone ? `📞 *Teléfono Counter:* ${currentRiveraBranch.phone}\n` : ''}⏰ *Salida:* ${currentRiveraBranch.dispatchSchedule}
 ⚡ *Llegada Estimada:* ${currentRiveraBranch.arrivalNotice}
 ⚠️ *Flete:* Pago contra entrega en destino por el cliente`;
+    } else if (shippingType === 'shalom') {
+      shippingBlockText = 
+`🚚 *ENVÍO POR SHALOM EMPRESARIAL:*
+🗓️ *Día de Despacho:* ${dispatchDay}
+👤 *Destinatario:* ${clientName.trim()}
+🪪 *DNI Destinatario:* ${clientDni.trim()}
+📍 *Ciudad / Destino:* ${shalomCity.trim()}
+🏢 *Sede / Agencia Shalom:* ${shalomBranchName.trim()}
+⚡ *Modalidad:* Agencia a Agencia (Recojo con DNI)
+⚠️ *Flete:* Pago contra entrega en destino (Shalom)`;
     } else if (shippingType === 'agencia_nacional') {
       shippingBlockText = 
 `🚚 *ENVÍO POR AGENCIA NACIONAL (Selva Central):*
@@ -396,48 +433,51 @@ ${itemsListText}-----------------------------------------
                   </div>
                 )}
 
-                {/* Client Name */}
-                <div>
-                  <label className={`text-xs font-bold flex items-center gap-1 mb-1 ${
-                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                  }`}>
-                    <User className="w-3.5 h-3.5 text-[#60b64d]" />
-                    Nombre Completo del Cliente
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Ej. Sra. María Fernández"
-                    className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
-                      isDarkMode
-                        ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
-                    }`}
-                  />
-                </div>
+                {/* Client Contact Details (Compact Grid) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Client Name */}
+                  <div>
+                    <label className={`text-[11px] font-bold flex items-center gap-1 mb-0.5 ${
+                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      <User className="w-3 h-3 text-[#60b64d]" />
+                      Tu Nombre Completo:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Ej. María Fernández"
+                      className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:outline-none ${
+                        isDarkMode
+                          ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
+                          : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                      }`}
+                    />
+                  </div>
 
-                {/* Client Phone */}
-                <div>
-                  <label className={`text-xs font-bold flex items-center gap-1 mb-1 ${
-                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                  }`}>
-                    <Phone className="w-3.5 h-3.5 text-[#60b64d]" />
-                    Teléfono / WhatsApp de Contacto
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                    placeholder="Ej. 983 123 456"
-                    className={`w-full p-2.5 text-xs rounded-xl border focus:outline-none ${
-                      isDarkMode
-                        ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
-                        : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
-                    }`}
-                  />
+                  {/* Client Phone */}
+                  <div>
+                    <label className={`text-[11px] font-bold flex items-center gap-1 mb-0.5 ${
+                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      <Phone className="w-3 h-3 text-[#60b64d]" />
+                      Teléfono / WhatsApp:
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                      placeholder="Ej. 983 123 456"
+                      className={`w-full px-2.5 py-1.5 text-xs rounded-lg border focus:outline-none ${
+                        isDarkMode
+                          ? 'bg-[#0d1712] border-[#1c3326] text-white focus:border-[#60b64d]'
+                          : 'bg-white border-slate-300 text-slate-900 focus:border-[#60b64d]'
+                      }`}
+                    />
+                  </div>
                 </div>
 
                 {/* Box: Día de Despacho (Salida de Hornada) */}
@@ -623,7 +663,7 @@ ${itemsListText}-----------------------------------------
                     Agencia / Método de Envío
                   </label>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
                     <button
                       type="button"
                       onClick={() => setShippingType('palomino')}
@@ -656,6 +696,22 @@ ${itemsListText}-----------------------------------------
 
                     <button
                       type="button"
+                      onClick={() => setShippingType('shalom')}
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all relative ${
+                        shippingType === 'shalom'
+                          ? 'border-red-500 bg-red-500/15 text-red-500 shadow-sm ring-2 ring-red-500/60 dark:text-red-400'
+                          : isDarkMode
+                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-red-500/40'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-red-500/40'
+                      }`}
+                    >
+                      <Package className="w-4 h-4 text-red-500" />
+                      <span className="leading-tight text-[11px] font-bold">Shalom</span>
+                      <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black tracking-wide">TODO EL PERÚ</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => {
                         setShippingType('agencia_nacional');
                         setDispatchDay('Viernes');
@@ -669,8 +725,8 @@ ${itemsListText}-----------------------------------------
                       }`}
                     >
                       <Building2 className="w-4 h-4 text-emerald-400" />
-                      <span className="leading-tight text-[11px] font-bold">Agencia Nacional</span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black tracking-wide">SELVA CENTRAL</span>
+                      <span className="leading-tight text-[11px] font-bold">Ag. Nacional</span>
+                      <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black tracking-wide">SELVA CENTRAL</span>
                     </button>
 
                     <button
@@ -685,7 +741,7 @@ ${itemsListText}-----------------------------------------
                       }`}
                     >
                       <Truck className="w-4 h-4 text-amber-400" />
-                      <span className="leading-tight text-[11px]">Agencia Molina</span>
+                      <span className="leading-tight text-[11px]">Ag. Molina</span>
                     </button>
                   </div>
 
@@ -873,6 +929,146 @@ ${itemsListText}-----------------------------------------
                         <span>
                           <strong className="font-bold">Flete en destino:</strong> El costo de envío se cancela directamente al recoger el paquete en la agencia Rivera Cargo.
                         </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shalom Courier Configuration & Inputs (Mobile-Optimized Compact Layout) */}
+                  {shippingType === 'shalom' && (
+                    <div className={`p-3 rounded-xl border space-y-2.5 animate-in fade-in duration-150 ${
+                      isDarkMode ? 'bg-[#0d1712] border-red-500/30' : 'bg-red-50/60 border-red-200'
+                    }`}>
+                      {/* Compact Header */}
+                      <div className="flex items-center justify-between gap-2 pb-1 border-b border-red-500/20">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-5 h-5 rounded bg-red-600 flex items-center justify-center text-white font-black text-[10px]">
+                            SH
+                          </span>
+                          <span className="text-xs font-extrabold text-red-600 dark:text-red-400">
+                            Datos para Guía Shalom
+                          </span>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-600/15 text-red-600 dark:text-red-400 font-bold border border-red-500/20">
+                          Todo el Perú
+                        </span>
+                      </div>
+
+                      {/* Row 1: Nombre del Titular + DNI en 2 Columnas */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Nombre del Destinatario */}
+                        <div>
+                          <label className={`text-[11px] font-bold block mb-0.5 ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                          }`}>
+                            <span className="text-red-500 font-black mr-0.5">*</span>Nombre y Apellidos (Titular):
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              value={clientName}
+                              onChange={(e) => setClientName(e.target.value)}
+                              placeholder="Ej. Juan Pérez"
+                              className={`w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border font-semibold focus:outline-none ${
+                                isDarkMode
+                                  ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-red-500'
+                                  : 'bg-white border-slate-300 text-slate-900 focus:border-red-500'
+                              }`}
+                            />
+                            <User className="w-3.5 h-3.5 text-red-500 absolute left-2 top-2" />
+                          </div>
+                        </div>
+
+                        {/* DNI del Titular */}
+                        <div>
+                          <label className={`text-[11px] font-bold block mb-0.5 ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                          }`}>
+                            <span className="text-red-500 font-black mr-0.5">*</span>DNI del Titular:
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={8}
+                              required
+                              value={clientDni}
+                              onChange={(e) => setClientDni(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                              placeholder="8 dígitos"
+                              className={`w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border font-mono font-semibold tracking-wider focus:outline-none ${
+                                isDarkMode
+                                  ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-red-500'
+                                  : 'bg-white border-slate-300 text-slate-900 focus:border-red-500'
+                              }`}
+                            />
+                            <CreditCard className="w-3.5 h-3.5 text-red-500 absolute left-2 top-2" />
+                          </div>
+                          <span className={`text-[9px] block mt-0.5 ${clientDni.length === 8 ? 'text-emerald-500 font-bold' : 'text-slate-400'}`}>
+                            {clientDni.length === 8 ? '✓ DNI listo' : `${clientDni.length}/8 dígitos`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Ciudad Destino + Sede Shalom en 2 Columnas */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Ciudad / Destino */}
+                        <div>
+                          <label className={`text-[11px] font-bold block mb-0.5 ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                          }`}>
+                            <span className="text-red-500 font-black mr-0.5">*</span>Ciudad Destino:
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              value={shalomCity}
+                              onChange={(e) => setShalomCity(e.target.value)}
+                              placeholder="Ej. Lima, Cusco..."
+                              className={`w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border font-semibold focus:outline-none ${
+                                isDarkMode
+                                  ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-red-500'
+                                  : 'bg-white border-slate-300 text-slate-900 focus:border-red-500'
+                              }`}
+                            />
+                            <MapPin className="w-3.5 h-3.5 text-red-500 absolute left-2 top-2" />
+                          </div>
+                        </div>
+
+                        {/* Sede Shalom */}
+                        <div>
+                          <label className={`text-[11px] font-bold block mb-0.5 ${
+                            isDarkMode ? 'text-slate-300' : 'text-slate-800'
+                          }`}>
+                            <span className="text-red-500 font-black mr-0.5">*</span>Sede Shalom de Recojo:
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              value={shalomBranchName}
+                              onChange={(e) => setShalomBranchName(e.target.value)}
+                              placeholder="Ej. Sede Av. Central..."
+                              className={`w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border font-semibold focus:outline-none ${
+                                isDarkMode
+                                  ? 'bg-[#08100c] border-[#1c3326] text-white focus:border-red-500'
+                                  : 'bg-white border-slate-300 text-slate-900 focus:border-red-500'
+                              }`}
+                            />
+                            <Building2 className="w-3.5 h-3.5 text-red-500 absolute left-2 top-2" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Compact Micro Notice */}
+                      <div className={`px-2.5 py-1.5 rounded-lg border text-[10px] flex items-center justify-between gap-1.5 ${
+                        isDarkMode ? 'bg-red-950/20 border-red-500/20 text-red-300' : 'bg-red-50 border-red-200 text-red-900'
+                      }`}>
+                        <div className="flex items-center gap-1">
+                          <Info className="w-3 h-3 text-red-500 shrink-0" />
+                          <span>Retiro con <strong>DNI en ventanilla</strong></span>
+                        </div>
+                        <span className="font-semibold text-[9px] opacity-80">Flete pago en destino</span>
                       </div>
                     </div>
                   )}

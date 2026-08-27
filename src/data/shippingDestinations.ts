@@ -470,13 +470,22 @@ export const INITIAL_SHIPPING_AGENCIES: ShippingAgency[] = [
     sortOrder: 2,
   },
   {
+    id: 'shalom',
+    name: 'Shalom Empresarial',
+    type: 'shalom',
+    description: 'Envíos a nivel nacional (Agencia a Agencia). Requiere DNI y Sede de destino.',
+    dispatchDaysSummary: 'Martes y Viernes',
+    active: true,
+    sortOrder: 3,
+  },
+  {
     id: 'agencia_nacional',
     name: 'Agencia Nacional',
     type: 'agencia_nacional',
     description: 'Despachos especiales hacia Huanta y Selva Central.',
     dispatchDaysSummary: 'Viernes 1:00 PM (Especial Selva Central)',
     active: true,
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
     id: 'agencia_molina',
@@ -485,9 +494,70 @@ export const INITIAL_SHIPPING_AGENCIES: ShippingAgency[] = [
     description: 'Despachos hacia Arequipa, Juliaca, Cusco y Puerto Maldonado.',
     dispatchDaysSummary: 'Martes (4:00 PM) y Viernes (3:00 PM)',
     active: true,
-    sortOrder: 4,
+    sortOrder: 5,
   },
 ];
+
+export interface ShalomBranch {
+  id: string;
+  name: string;
+  region: string;
+  address: string;
+  dispatchSchedule: string;
+  arrivalNotice: string;
+  googleMapsUrl?: string;
+}
+
+export const SHALOM_BRANCHES: ShalomBranch[] = [
+  {
+    id: 'sh_lima_central',
+    name: 'Lima - Sede México (La Victoria)',
+    region: 'Lima',
+    address: 'Av. México 1120, La Victoria, Lima',
+    dispatchSchedule: 'Martes y Viernes 4:00 PM',
+    arrivalNotice: 'Retiro en 24-48 hrs con DNI en ventanilla',
+  },
+  {
+    id: 'sh_cusco_wanchaq',
+    name: 'Cusco - Sede Wanchaq',
+    region: 'Cusco',
+    address: 'Av. Diagonal Angamos 1953, Wanchaq, Cusco',
+    dispatchSchedule: 'Martes y Viernes 4:00 PM',
+    arrivalNotice: 'Retiro en 24 hrs con DNI en ventanilla',
+  },
+  {
+    id: 'sh_arequipa',
+    name: 'Arequipa - Sede Parque Industrial',
+    region: 'Arequipa',
+    address: 'Calle Jacinto Ibañez 315, Parque Industrial, Arequipa',
+    dispatchSchedule: 'Martes y Viernes 4:00 PM',
+    arrivalNotice: 'Retiro en 24-48 hrs con DNI en ventanilla',
+  },
+  {
+    id: 'sh_huancayo',
+    name: 'Huancayo - Sede El Tambo',
+    region: 'Huancayo',
+    address: 'Av. Huancavelica 1420, El Tambo, Huancayo',
+    dispatchSchedule: 'Martes y Viernes 4:00 PM',
+    arrivalNotice: 'Retiro en 24-48 hrs con DNI en ventanilla',
+  },
+  {
+    id: 'sh_trujillo',
+    name: 'Trujillo - Sede Mansiche',
+    region: 'Trujillo',
+    address: 'Av. Mansiche 1080, Trujillo',
+    dispatchSchedule: 'Martes y Viernes 4:00 PM',
+    arrivalNotice: 'Retiro en 48 hrs con DNI en ventanilla',
+  },
+];
+
+export const getStoredShalomBranches = (): ShalomBranch[] => {
+  try {
+    const saved = localStorage.getItem('uberris_shalom_branches');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return SHALOM_BRANCHES;
+};
 
 export const getStoredAgencies = (): ShippingAgency[] => {
   try {

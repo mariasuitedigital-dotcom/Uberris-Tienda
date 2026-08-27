@@ -159,27 +159,162 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS hero_image_3 TEXT;
 `;
 
-export const SUPABASE_SQL_AGENCIES_MIGRATION = `-- ============================================================================
--- TABLAS DE AGENCIAS DE TRANSPORTE Y DESTINOS DE ENVÍO UBERRIS
+export const SUPABASE_SQL_SHALOM_ONLY_MIGRATION = `-- ============================================================================
+-- SCRIPT EXCLUSIVO PARA SHALOM EMPRESARIAL (SUPABASE)
 -- Copia y pega esto en el "SQL Editor" de Supabase y presiona "RUN"
 -- ============================================================================
 
+-- 1. Agregar columnas para DNI y tipo de envío en orders
 ALTER TABLE IF EXISTS public.orders
-  ADD COLUMN IF NOT EXISTS dispatch_day TEXT;
+  ADD COLUMN IF NOT EXISTS client_dni TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_type TEXT DEFAULT 'agency';
 
+-- 2. Asegurar que shipping_agencies tenga todas las columnas requeridas
 CREATE TABLE IF NOT EXISTS public.shipping_agencies (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  is_active BOOLEAN DEFAULT true,
-  description TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE IF EXISTS public.shipping_agencies
+  ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'shalom',
+  ADD COLUMN IF NOT EXISTS code TEXT,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_days_summary TEXT DEFAULT 'Martes y Viernes',
+  ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now());
+
+-- 3. Asegurar que shipping_destinations tenga todas las columnas requeridas
 CREATE TABLE IF NOT EXISTS public.shipping_destinations (
   id TEXT PRIMARY KEY,
   agency_id TEXT REFERENCES public.shipping_agencies(id) ON DELETE CASCADE,
-  agency_code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE IF EXISTS public.shipping_destinations
+  ADD COLUMN IF NOT EXISTS agency_type TEXT DEFAULT 'shalom',
+  ADD COLUMN IF NOT EXISTS agency_code TEXT DEFAULT 'shalom',
+  ADD COLUMN IF NOT EXISTS region_or_zone TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_schedule TEXT,
+  ADD COLUMN IF NOT EXISTS arrival_notice TEXT,
+  ADD COLUMN IF NOT EXISTS google_maps_url TEXT,
+  ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now());
+
+-- 4. Habilitar Seguridad RLS
+ALTER TABLE public.shipping_agencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shipping_destinations ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read shipping_agencies' AND tablename = 'shipping_agencies') THEN
+    CREATE POLICY "Public read shipping_agencies" ON public.shipping_agencies FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write shipping_agencies' AND tablename = 'shipping_agencies') THEN
+    CREATE POLICY "Public write shipping_agencies" ON public.shipping_agencies FOR ALL USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read shipping_destinations' AND tablename = 'shipping_destinations') THEN
+    CREATE POLICY "Public read shipping_destinations" ON public.shipping_destinations FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write shipping_destinations' AND tablename = 'shipping_destinations') THEN
+    CREATE POLICY "Public write shipping_destinations" ON public.shipping_destinations FOR ALL USING (true);
+  END IF;
+END $$;
+
+-- 5. Insertar o actualizar únicamente la Agencia Shalom Empresarial
+INSERT INTO public.shipping_agencies (id, name, type, code, description, dispatch_days_summary, active, is_active, sort_order) 
+VALUES (
+  'shalom', 
+  'Shalom Empresarial', 
+  'shalom', 
+  'shalom',
+  'Envíos a nivel nacional (Agencia a Agencia). Requiere DNI y Sede de destino.', 
+  'Martes y Viernes', 
+  true, 
+  true,
+  3
+)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  type = EXCLUDED.type,
+  code = EXCLUDED.code,
+  description = EXCLUDED.description,
+  dispatch_days_summary = EXCLUDED.dispatch_days_summary,
+  active = EXCLUDED.active,
+  is_active = EXCLUDED.is_active,
+  updated_at = NOW();
+
+-- 6. Insertar Sedes de Shalom en shipping_destinations
+INSERT INTO public.shipping_destinations (id, agency_id, agency_type, agency_code, name, region_or_zone, address, dispatch_schedule, arrival_notice, active, is_active, sort_order) VALUES
+('sh_lima_central', 'shalom', 'shalom', 'shalom', 'Lima - Sede México (La Victoria)', 'Lima', 'Av. México 1120, La Victoria, Lima', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, true, 1),
+('sh_cusco_wanchaq', 'shalom', 'shalom', 'shalom', 'Cusco - Sede Wanchaq', 'Cusco', 'Av. Diagonal Angamos 1953, Wanchaq, Cusco', 'Martes y Viernes 4:00 PM', 'Retiro en 24 hrs con DNI', true, true, 2),
+('sh_arequipa', 'shalom', 'shalom', 'shalom', 'Arequipa - Sede Parque Industrial', 'Arequipa', 'Calle Jacinto Ibañez 315, Parque Industrial, Arequipa', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, true, 3),
+('sh_huancayo', 'shalom', 'shalom', 'shalom', 'Huancayo - Sede El Tambo', 'Huancayo', 'Av. Huancavelica 1420, El Tambo, Huancayo', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, true, 4),
+('sh_trujillo', 'shalom', 'shalom', 'shalom', 'Trujillo - Sede Mansiche', 'Trujillo', 'Av. Mansiche 1080, Trujillo', 'Martes y Viernes 4:00 PM', 'Retiro en 48 hrs con DNI', true, true, 5)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  region_or_zone = EXCLUDED.region_or_zone,
+  address = EXCLUDED.address,
+  dispatch_schedule = EXCLUDED.dispatch_schedule,
+  arrival_notice = EXCLUDED.arrival_notice,
+  active = EXCLUDED.active,
+  is_active = EXCLUDED.is_active,
+  updated_at = NOW();
+`;
+
+export const SUPABASE_SQL_AGENCIES_MIGRATION = `-- ============================================================================
+-- TABLAS DE AGENCIAS DE TRANSPORTE, SHALOM Y DESTINOS DE ENVÍO UBERRIS
+-- Copia y pega esto en el "SQL Editor" de Supabase y presiona "RUN"
+-- ============================================================================
+
+-- 1. Actualizar tabla de pedidos (orders) con soporte para DNI y tipo de envío
+ALTER TABLE IF EXISTS public.orders
+  ADD COLUMN IF NOT EXISTS client_dni TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_day TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_type TEXT DEFAULT 'agency',
+  ADD COLUMN IF NOT EXISTS shipping_agency TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_branch TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_notice TEXT;
+
+-- 2. Tabla de Agencias de Transporte
+CREATE TABLE IF NOT EXISTS public.shipping_agencies (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT DEFAULT 'otra',
+  code TEXT,
+  description TEXT,
+  dispatch_days_summary TEXT DEFAULT 'Martes y Viernes',
+  active BOOLEAN DEFAULT true,
+  is_active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE IF EXISTS public.shipping_agencies
+  ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'otra',
+  ADD COLUMN IF NOT EXISTS code TEXT,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_days_summary TEXT DEFAULT 'Martes y Viernes',
+  ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now());
+
+-- 3. Tabla de Sedes y Destinos de Transporte
+CREATE TABLE IF NOT EXISTS public.shipping_destinations (
+  id TEXT PRIMARY KEY,
+  agency_id TEXT REFERENCES public.shipping_agencies(id) ON DELETE CASCADE,
+  agency_type TEXT,
+  agency_code TEXT,
   name TEXT NOT NULL,
   region_or_zone TEXT,
   address TEXT,
@@ -187,10 +322,28 @@ CREATE TABLE IF NOT EXISTS public.shipping_destinations (
   dispatch_schedule TEXT,
   arrival_notice TEXT,
   google_maps_url TEXT,
+  active BOOLEAN DEFAULT true,
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE IF EXISTS public.shipping_destinations
+  ADD COLUMN IF NOT EXISTS agency_type TEXT,
+  ADD COLUMN IF NOT EXISTS agency_code TEXT,
+  ADD COLUMN IF NOT EXISTS region_or_zone TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_schedule TEXT,
+  ADD COLUMN IF NOT EXISTS arrival_notice TEXT,
+  ADD COLUMN IF NOT EXISTS google_maps_url TEXT,
+  ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now());
+
+-- 4. Habilitar Seguridad por Fila (RLS)
 ALTER TABLE public.shipping_agencies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shipping_destinations ENABLE ROW LEVEL SECURITY;
 
@@ -210,6 +363,38 @@ BEGIN
     CREATE POLICY "Public write shipping_destinations" ON public.shipping_destinations FOR ALL USING (true);
   END IF;
 END $$;
+
+-- 5. Insertar / Actualizar Agencias Iniciales (Incluye Shalom Empresarial)
+INSERT INTO public.shipping_agencies (id, name, type, description, dispatch_days_summary, active, sort_order) VALUES
+('palomino', 'Expreso Palomino', 'palomino', 'Envíos a Lima, Ica, Nazca, Cusco y Provincias del Sur.', 'Martes y Viernes', true, 1),
+('rivera_cargo', 'Rivera Cargo', 'rivera_cargo', 'Amplia cobertura en todo Lima Metropolitana, Callao, Ventanilla y Conos.', 'Martes y Viernes', true, 2),
+('shalom', 'Shalom Empresarial', 'shalom', 'Envíos a nivel nacional (Agencia a Agencia). Requiere DNI y Sede de destino.', 'Martes y Viernes', true, 3),
+('agencia_nacional', 'Agencia Nacional', 'agencia_nacional', 'Despachos especiales hacia Huanta y Selva Central.', 'Viernes 1:00 PM (Especial Selva Central)', true, 4),
+('agencia_molina', 'Agencia Molina', 'agencia_molina', 'Despachos hacia Arequipa, Juliaca, Cusco y Puerto Maldonado.', 'Martes (4:00 PM) y Viernes (3:00 PM)', true, 5)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  type = EXCLUDED.type,
+  description = EXCLUDED.description,
+  dispatch_days_summary = EXCLUDED.dispatch_days_summary,
+  active = EXCLUDED.active,
+  sort_order = EXCLUDED.sort_order,
+  updated_at = NOW();
+
+-- 6. Insertar Sedes de Ejemplo para Shalom Empresarial
+INSERT INTO public.shipping_destinations (id, agency_id, agency_type, name, region_or_zone, address, dispatch_schedule, arrival_notice, active, sort_order) VALUES
+('sh_lima_central', 'shalom', 'shalom', 'Lima - Sede México (La Victoria)', 'Lima', 'Av. México 1120, La Victoria, Lima', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, 1),
+('sh_cusco_wanchaq', 'shalom', 'shalom', 'Cusco - Sede Wanchaq', 'Cusco', 'Av. Diagonal Angamos 1953, Wanchaq, Cusco', 'Martes y Viernes 4:00 PM', 'Retiro en 24 hrs con DNI', true, 2),
+('sh_arequipa', 'shalom', 'shalom', 'Arequipa - Sede Parque Industrial', 'Arequipa', 'Calle Jacinto Ibañez 315, Parque Industrial, Arequipa', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, 3),
+('sh_huancayo', 'shalom', 'shalom', 'Huancayo - Sede El Tambo', 'Huancayo', 'Av. Huancavelica 1420, El Tambo, Huancayo', 'Martes y Viernes 4:00 PM', 'Retiro en 24-48 hrs con DNI', true, 4),
+('sh_trujillo', 'shalom', 'shalom', 'Trujillo - Sede Mansiche', 'Trujillo', 'Av. Mansiche 1080, Trujillo', 'Martes y Viernes 4:00 PM', 'Retiro en 48 hrs con DNI', true, 5)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  region_or_zone = EXCLUDED.region_or_zone,
+  address = EXCLUDED.address,
+  dispatch_schedule = EXCLUDED.dispatch_schedule,
+  arrival_notice = EXCLUDED.arrival_notice,
+  active = EXCLUDED.active,
+  updated_at = NOW();
 `;
 
 export const SUPABASE_SQL_CATEGORIES_MIGRATION = `-- ============================================================================
@@ -292,6 +477,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
   client_name TEXT NOT NULL,
   client_phone TEXT NOT NULL,
+  client_dni TEXT,
   address TEXT,
   destination_city TEXT NOT NULL,
   delivery_date DATE,
@@ -689,6 +875,7 @@ export const dbFetchOrders = async (): Promise<Order[] | null> => {
     id: row.id,
     clientName: row.client_name,
     clientPhone: row.client_phone,
+    clientDni: row.client_dni || '',
     address: row.address || '',
     destinationCity: row.destination_city,
     deliveryDate: row.delivery_date || undefined,
@@ -723,6 +910,7 @@ export const dbCreateOrder = async (order: Order): Promise<boolean> => {
     id: order.id,
     client_name: order.clientName,
     client_phone: order.clientPhone,
+    client_dni: order.clientDni || null,
     address: order.address || null,
     destination_city: order.destinationCity,
     delivery_date: order.deliveryDate || null,

@@ -47,13 +47,15 @@ import {
   Upload,
   Info,
   FolderPlus,
-  Tag
+  Tag,
+  CreditCard
 } from 'lucide-react';
 import {
   isSupabaseConnected,
   dbUpsertStoreSettings,
   SUPABASE_SQL_FOOTER_MIGRATION,
   SUPABASE_SQL_AGENCIES_MIGRATION,
+  SUPABASE_SQL_SHALOM_ONLY_MIGRATION,
   SUPABASE_SQL_CATEGORIES_MIGRATION,
   uploadImageToSupabaseStorage,
   dataURLToBlob,
@@ -80,10 +82,12 @@ import {
   getStoredRiveraBranches,
   getStoredNacionalBranches,
   getStoredMolinaBranches,
+  getStoredShalomBranches,
   PalominoBranch,
   RiveraCargoBranch,
   NacionalBranch,
-  MolinaBranch
+  MolinaBranch,
+  ShalomBranch
 } from '../data/shippingDestinations';
 
 interface Props {
@@ -123,7 +127,6 @@ export const AdminPanel: React.FC<Props> = ({
 }) => {
   // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario, 4. Redes & Footer, 5. Agencias
   const [activeMainTab, setActiveMainTab] = useState<'produccion' | 'pedidos' | 'inventario' | 'redes' | 'agencias'>('produccion');
-  const [copiedAgenciesSql, setCopiedAgenciesSql] = useState(false);
 
   // Local settings state for the form
   const [editingSettings, setEditingSettings] = useState<StoreSettings>(() => {
@@ -171,6 +174,8 @@ export const AdminPanel: React.FC<Props> = ({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
   const [copiedCategoriesSql, setCopiedCategoriesSql] = useState(false);
+  const [copiedAgenciesSql, setCopiedAgenciesSql] = useState(false);
+  const [copiedShalomSql, setCopiedShalomSql] = useState(false);
 
   // Category Modal State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -318,6 +323,13 @@ export const AdminPanel: React.FC<Props> = ({
     setTimeout(() => setCopiedAgenciesSql(false), 3000);
   };
 
+  const handleCopyShalomSql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SHALOM_ONLY_MIGRATION);
+    setCopiedShalomSql(true);
+    onShowToast('SQL de Shalom Copiado', 'Pégalo en el SQL Editor de Supabase y presiona RUN para registrar solo Shalom y sus sedes.', 'success');
+    setTimeout(() => setCopiedShalomSql(false), 3000);
+  };
+
   React.useEffect(() => {
     if (settings) {
       setEditingSettings(settings);
@@ -359,6 +371,7 @@ export const AdminPanel: React.FC<Props> = ({
   const [agenciesList, setAgenciesList] = useState<ShippingAgency[]>(getStoredAgencies);
   const [palominoBranches, setPalominoBranches] = useState<PalominoBranch[]>(getStoredPalominoBranches);
   const [riveraBranches, setRiveraBranches] = useState<RiveraCargoBranch[]>(getStoredRiveraBranches);
+  const [shalomBranches, setShalomBranches] = useState<ShalomBranch[]>(getStoredShalomBranches);
   const [nacionalBranches, setNacionalBranches] = useState<NacionalBranch[]>(getStoredNacionalBranches);
   const [molinaBranches, setMolinaBranches] = useState<MolinaBranch[]>(getStoredMolinaBranches);
 
@@ -440,6 +453,10 @@ export const AdminPanel: React.FC<Props> = ({
       let updated = isNew ? [...riveraBranches, cleanBranch] : riveraBranches.map(b => b.id === branchId ? cleanBranch : b);
       setRiveraBranches(updated);
       localStorage.setItem('uberris_rivera_branches', JSON.stringify(updated));
+    } else if (agencyType === 'shalom') {
+      let updated = isNew ? [...shalomBranches, cleanBranch] : shalomBranches.map(b => b.id === branchId ? cleanBranch : b);
+      setShalomBranches(updated);
+      localStorage.setItem('uberris_shalom_branches', JSON.stringify(updated));
     } else if (agencyType === 'agencia_nacional') {
       let updated = isNew ? [...nacionalBranches, cleanBranch] : nacionalBranches.map(b => b.id === branchId ? cleanBranch : b);
       setNacionalBranches(updated);
@@ -464,6 +481,10 @@ export const AdminPanel: React.FC<Props> = ({
       const updated = riveraBranches.filter(b => b.id !== branchId);
       setRiveraBranches(updated);
       localStorage.setItem('uberris_rivera_branches', JSON.stringify(updated));
+    } else if (agencyType === 'shalom') {
+      const updated = shalomBranches.filter(b => b.id !== branchId);
+      setShalomBranches(updated);
+      localStorage.setItem('uberris_shalom_branches', JSON.stringify(updated));
     } else if (agencyType === 'agencia_nacional') {
       const updated = nacionalBranches.filter(b => b.id !== branchId);
       setNacionalBranches(updated);
@@ -493,6 +514,7 @@ export const AdminPanel: React.FC<Props> = ({
       if (filterAgency !== 'Todas') {
         if (filterAgency === 'Palomino' && !o.shippingAgency?.includes('Palomino')) return false;
         if (filterAgency === 'Rivera' && !o.shippingAgency?.includes('Rivera')) return false;
+        if (filterAgency === 'Shalom' && !o.shippingAgency?.toLowerCase().includes('shalom') && o.shippingType !== 'shalom') return false;
         if (filterAgency === 'Local' && !o.shippingAgency?.includes('Local') && o.shippingType !== 'store_pickup') return false;
       }
 
@@ -500,11 +522,12 @@ export const AdminPanel: React.FC<Props> = ({
       if (orderSearchQuery.trim()) {
         const q = orderSearchQuery.toLowerCase();
         const matchesClient = o.clientName.toLowerCase().includes(q);
+        const matchesDni = (o.clientDni || '').toLowerCase().includes(q);
         const matchesId = o.id.toLowerCase().includes(q);
         const matchesDest = o.destinationCity.toLowerCase().includes(q);
         const matchesAgency = (o.shippingAgency || '').toLowerCase().includes(q);
         const matchesPhone = o.clientPhone.includes(q);
-        if (!matchesClient && !matchesId && !matchesDest && !matchesAgency && !matchesPhone) return false;
+        if (!matchesClient && !matchesDni && !matchesId && !matchesDest && !matchesAgency && !matchesPhone) return false;
       }
 
       // Date filter
@@ -1107,6 +1130,15 @@ export const AdminPanel: React.FC<Props> = ({
         color: isDarkMode
           ? 'bg-blue-500/15 border-blue-500/30 text-blue-300'
           : 'bg-blue-50 border-blue-300 text-blue-800'
+      };
+    }
+    if (order.shippingType === 'shalom' || order.shippingAgency?.toLowerCase().includes('shalom')) {
+      return {
+        label: 'Shalom',
+        icon: Package,
+        color: isDarkMode
+          ? 'bg-red-500/15 border-red-500/30 text-red-300'
+          : 'bg-red-50 border-red-300 text-red-700'
       };
     }
     if (order.shippingType === 'store_pickup' || order.shippingAgency?.includes('Local')) {
@@ -2043,7 +2075,7 @@ export const AdminPanel: React.FC<Props> = ({
                 <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
                   <Truck className="w-3 h-3 text-[#60b64d]" /> Agencia:
                 </span>
-                {['Todas', 'Palomino', 'Rivera', 'Local'].map((ag) => (
+                {['Todas', 'Palomino', 'Rivera', 'Shalom', 'Local'].map((ag) => (
                   <button
                     key={ag}
                     onClick={() => setFilterAgency(ag)}
@@ -2055,7 +2087,7 @@ export const AdminPanel: React.FC<Props> = ({
                         : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                     }`}
                   >
-                    {ag === 'Palomino' ? '🚍 Palomino' : ag === 'Rivera' ? '📦 Rivera Cargo' : ag === 'Local' ? '🏪 Local' : 'Todas'}
+                    {ag === 'Palomino' ? '🚍 Palomino' : ag === 'Rivera' ? '📦 Rivera Cargo' : ag === 'Shalom' ? '🔴 Shalom' : ag === 'Local' ? '🏪 Local' : 'Todas'}
                   </button>
                 ))}
 
@@ -2165,6 +2197,13 @@ export const AdminPanel: React.FC<Props> = ({
                         <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${
                           isDarkMode ? 'text-slate-300' : 'text-slate-700'
                         }`}>
+                          {order.clientDni && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/15 border border-red-500/30 text-red-500 font-mono font-bold text-[11px]">
+                              <CreditCard className="w-3 h-3" />
+                              DNI: {order.clientDni}
+                            </span>
+                          )}
+
                           <span className="flex items-center gap-1">
                             <Phone className="w-3 h-3 text-[#60b64d]" />
                             <a href={`tel:${order.clientPhone}`} className={`hover:underline font-medium ${
@@ -4061,15 +4100,47 @@ export const AdminPanel: React.FC<Props> = ({
                 <div className="flex items-center gap-2">
                   <Truck className="w-5 h-5 text-[#60b64d]" />
                   <h2 className="text-base font-extrabold tracking-tight">
-                    Agencias de Transporte y Sedes de Destino
+                    Agencias de Transporte, Shalom y Sedes de Destino
                   </h2>
                 </div>
                 <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Modifica las agencias activas, edita nombres, cambia horarios de salida y administra las sedes de entrega disponibles.
+                  Modifica las agencias activas (Palomino, Rivera Cargo, Shalom Empresarial, Molina, Nacional), edita nombres, horarios de salida y sedes de entrega.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleCopyShalomSql}
+                  className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    copiedShalomSql
+                      ? 'bg-red-600 text-white border-red-600'
+                      : isDarkMode
+                        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
+                        : 'bg-red-50 hover:bg-red-100 text-red-700 border-red-300'
+                  }`}
+                  title="Copiar script SQL exclusivo para registrar Shalom Empresarial en Supabase"
+                >
+                  <Database className="w-4 h-4 text-red-500" />
+                  <span>{copiedShalomSql ? '✓ ¡SQL Shalom Copiado!' : 'Copiar SQL Solo Shalom'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyAgenciesSql}
+                  className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    copiedAgenciesSql
+                      ? 'bg-emerald-500 text-white border-emerald-500'
+                      : isDarkMode
+                        ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300'
+                  }`}
+                  title="Copiar script SQL completo para todas las agencias en Supabase"
+                >
+                  <Database className="w-4 h-4" />
+                  <span>{copiedAgenciesSql ? '✓ ¡SQL Copiado!' : 'Copiar SQL Todas Agencias'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -4084,6 +4155,35 @@ export const AdminPanel: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Supabase SQL Migration Info Card */}
+            <div className={`p-4 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+              isDarkMode ? 'bg-red-950/20 border-red-500/20' : 'bg-red-50/70 border-red-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-red-500/20 text-red-400 shrink-0 mt-0.5">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div className="text-xs space-y-0.5">
+                  <p className="font-bold text-red-400">
+                    Script SQL Solo para Shalom Empresarial
+                  </p>
+                  <p className={isDarkMode ? 'text-slate-300 text-[11px]' : 'text-slate-600 text-[11px]'}>
+                    Inserta la agencia <strong>Shalom</strong>, sus sedes iniciales y agrega la columna <code>client_dni</code> en <code>orders</code> sin afectar tus otras agencias existentes.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyShalomSql}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedShalomSql ? '¡Copiado!' : 'Copiar SQL Shalom'}</span>
+                </button>
+              </div>
+            </div>
+
             {/* Grid of Agencies */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {agenciesList.map((agency) => {
@@ -4091,21 +4191,45 @@ export const AdminPanel: React.FC<Props> = ({
                 let branchList: any[] = [];
                 if (agency.type === 'palomino') branchList = palominoBranches;
                 else if (agency.type === 'rivera_cargo') branchList = riveraBranches;
+                else if (agency.type === 'shalom') branchList = shalomBranches;
                 else if (agency.type === 'agencia_nacional') branchList = nacionalBranches;
                 else if (agency.type === 'agencia_molina') branchList = molinaBranches;
 
+                const isShalom = agency.type === 'shalom';
+
                 return (
                   <div key={agency.id} className={`p-4 sm:p-5 rounded-2xl border space-y-4 transition-all ${
-                    isDarkMode ? 'bg-[#0a120e] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'
+                    isShalom
+                      ? isDarkMode
+                        ? 'bg-[#0f1412] border-red-900/30 ring-1 ring-red-500/20'
+                        : 'bg-white border-red-200 shadow-sm ring-1 ring-red-500/10'
+                      : isDarkMode
+                        ? 'bg-[#0a120e] border-[#1c3326]'
+                        : 'bg-white border-slate-200 shadow-2xs'
                   }`}>
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-500/10">
                       <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[#60b64d]">
-                          <Truck className="w-5 h-5" />
+                        <div className={`p-2 rounded-xl border ${
+                          isShalom
+                            ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                            : 'bg-emerald-500/10 border-emerald-500/20 text-[#60b64d]'
+                        }`}>
+                          {isShalom ? (
+                            <span className="font-black text-xs px-0.5">SH</span>
+                          ) : (
+                            <Truck className="w-5 h-5" />
+                          )}
                         </div>
                         <div>
-                          <h3 className="font-extrabold text-sm">{agency.name}</h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-extrabold text-sm">{agency.name}</h3>
+                            {isShalom && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                Nacional DNI
+                              </span>
+                            )}
+                          </div>
                           <p className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                             {agency.dispatchDaysSummary || 'Despachos desde Abancay'}
                           </p>

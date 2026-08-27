@@ -44,6 +44,7 @@ export interface Order {
   id: string;
   clientName: string;
   clientPhone: string;
+  clientDni?: string;
   address?: string;
   destinationCity: string;
   deliveryDate?: string; // YYYY-MM-DD
@@ -54,7 +55,7 @@ export interface Order {
   createdAt: string;
   notes?: string;
   paymentMethod?: 'Yape' | 'BCP' | 'Plin';
-  shippingType?: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'agency' | 'store_pickup';
+  shippingType?: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'shalom' | 'agency' | 'store_pickup';
   shippingAgency?: string;
   shippingBranch?: string;
   shippingAddress?: string;
@@ -64,7 +65,7 @@ export interface Order {
 export interface ShippingAgency {
   id: string;
   name: string;
-  type: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'otra';
+  type: 'palomino' | 'rivera_cargo' | 'agencia_nacional' | 'agencia_molina' | 'shalom' | 'otra';
   description?: string;
   dispatchDaysSummary?: string;
   active: boolean;
