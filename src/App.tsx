@@ -8,7 +8,6 @@ import { Footer } from './components/Footer';
 import { NotificationToast, ToastMessage } from './components/NotificationToast';
 import { FloatingBreadHero } from './components/FloatingBreadHero';
 import { HorizontalProductCard } from './components/HorizontalProductCard';
-import { CategoriesGrid } from './components/CategoriesGrid';
 import { SectionHeader } from './components/SectionHeader';
 import { AndeanDivider } from './components/AndeanDivider';
 import { BottomNav } from './components/BottomNav';
@@ -633,25 +632,6 @@ export default function App() {
               ))}
             </div>
           )}
-
-          <AndeanDivider label="Nuestras Categorías Especiales" />
-
-          {/* SECTION: CATEGORÍAS */}
-          <section>
-            <CategoriesGrid
-              products={products}
-              settings={storeSettings}
-              categoryImages={storeSettings?.categoryImages}
-              categoryNames={storeSettings?.categoryNames}
-              categoryDescriptions={storeSettings?.categoryDescriptions}
-              customCategories={storeSettings?.customCategories}
-              onSelectCategory={(cat) => {
-                setSelectedCategory(cat);
-                handleScrollToCatalog();
-              }}
-              isDarkMode={isDarkMode}
-            />
-          </section>
         </main>
       ) : (
         /* Admin View Mode */
