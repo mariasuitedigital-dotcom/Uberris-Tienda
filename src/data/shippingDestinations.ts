@@ -1,4 +1,5 @@
 import { ShippingAgency, ShippingDestination } from '../types';
+export type { ShippingAgency, ShippingDestination };
 
 export interface PalominoBranch {
   id: string;
@@ -347,12 +348,14 @@ export interface NacionalBranch {
   arrivalNotice: string;
 }
 
+export type InternacionalBranch = NacionalBranch;
+
 export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
   {
     id: 'nac_huanta',
     name: 'Huanta',
     zone: 'Ayacucho / Selva Central',
-    address: 'Agencia Nacional - Sede Huanta',
+    address: 'Agencia Internacional - Sede Huanta',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
@@ -360,7 +363,7 @@ export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
     id: 'nac_pichanaki',
     name: 'Pichanaki',
     zone: 'Selva Central',
-    address: 'Agencia Nacional - Sede Pichanaki',
+    address: 'Agencia Internacional - Sede Pichanaki',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
@@ -368,7 +371,7 @@ export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
     id: 'nac_chanchamayo',
     name: 'Chanchamayo (La Merced)',
     zone: 'Selva Central',
-    address: 'Agencia Nacional - Sede Chanchamayo',
+    address: 'Agencia Internacional - Sede Chanchamayo',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
@@ -376,7 +379,7 @@ export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
     id: 'nac_satipo',
     name: 'Satipo',
     zone: 'Selva Central',
-    address: 'Agencia Nacional - Sede Satipo',
+    address: 'Agencia Internacional - Sede Satipo',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
@@ -384,7 +387,7 @@ export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
     id: 'nac_villa_rica',
     name: 'Villa Rica',
     zone: 'Selva Central',
-    address: 'Agencia Nacional - Sede Villa Rica',
+    address: 'Agencia Internacional - Sede Villa Rica',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
@@ -392,11 +395,13 @@ export const AGENCIA_NACIONAL_BRANCHES: NacionalBranch[] = [
     id: 'nac_mazamari',
     name: 'Mazamari',
     zone: 'Selva Central',
-    address: 'Agencia Nacional - Sede Mazamari',
+    address: 'Agencia Internacional - Sede Mazamari',
     dispatchSchedule: 'Se envía VIERNES 1:00 PM',
     arrivalNotice: 'Recoge SÁBADO a las 4:00 PM',
   },
 ];
+
+export const AGENCIA_INTERNACIONAL_BRANCHES = AGENCIA_NACIONAL_BRANCHES;
 
 export interface MolinaBranch {
   id: string;
@@ -480,7 +485,7 @@ export const INITIAL_SHIPPING_AGENCIES: ShippingAgency[] = [
   },
   {
     id: 'agencia_nacional',
-    name: 'Agencia Nacional',
+    name: 'Agencia Internacional',
     type: 'agencia_nacional',
     description: 'Despachos especiales hacia Huanta y Selva Central.',
     dispatchDaysSummary: 'Viernes 1:00 PM (Especial Selva Central)',
@@ -562,7 +567,17 @@ export const getStoredShalomBranches = (): ShalomBranch[] => {
 export const getStoredAgencies = (): ShippingAgency[] => {
   try {
     const saved = localStorage.getItem('uberris_agencies');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: ShippingAgency[] = JSON.parse(saved);
+      // Migrate old "Agencia Nacional" name to "Agencia Internacional"
+      const migrated = parsed.map((ag) => {
+        if (ag.id === 'agencia_nacional' && ag.name === 'Agencia Nacional') {
+          return { ...ag, name: 'Agencia Internacional' };
+        }
+        return ag;
+      });
+      return migrated;
+    }
   } catch (e) {}
   return INITIAL_SHIPPING_AGENCIES;
 };
@@ -586,10 +601,20 @@ export const getStoredRiveraBranches = (): RiveraCargoBranch[] => {
 export const getStoredNacionalBranches = (): NacionalBranch[] => {
   try {
     const saved = localStorage.getItem('uberris_nacional_branches');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: NacionalBranch[] = JSON.parse(saved);
+      // Migrate old addresses with "Agencia Nacional" to "Agencia Internacional"
+      const migrated = parsed.map((b) => ({
+        ...b,
+        address: b.address ? b.address.replace(/Agencia Nacional/g, 'Agencia Internacional') : b.address,
+      }));
+      return migrated;
+    }
   } catch (e) {}
   return AGENCIA_NACIONAL_BRANCHES;
 };
+
+export const getStoredInternacionalBranches = getStoredNacionalBranches;
 
 export const getStoredMolinaBranches = (): MolinaBranch[] => {
   try {

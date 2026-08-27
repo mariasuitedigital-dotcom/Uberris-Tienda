@@ -369,7 +369,7 @@ INSERT INTO public.shipping_agencies (id, name, type, description, dispatch_days
 ('palomino', 'Expreso Palomino', 'palomino', 'Envíos a Lima, Ica, Nazca, Cusco y Provincias del Sur.', 'Martes y Viernes', true, 1),
 ('rivera_cargo', 'Rivera Cargo', 'rivera_cargo', 'Amplia cobertura en todo Lima Metropolitana, Callao, Ventanilla y Conos.', 'Martes y Viernes', true, 2),
 ('shalom', 'Shalom Empresarial', 'shalom', 'Envíos a nivel nacional (Agencia a Agencia). Requiere DNI y Sede de destino.', 'Martes y Viernes', true, 3),
-('agencia_nacional', 'Agencia Nacional', 'agencia_nacional', 'Despachos especiales hacia Huanta y Selva Central.', 'Viernes 1:00 PM (Especial Selva Central)', true, 4),
+('agencia_nacional', 'Agencia Internacional', 'agencia_nacional', 'Despachos especiales hacia Huanta y Selva Central.', 'Viernes 1:00 PM (Especial Selva Central)', true, 4),
 ('agencia_molina', 'Agencia Molina', 'agencia_molina', 'Despachos hacia Arequipa, Juliaca, Cusco y Puerto Maldonado.', 'Martes (4:00 PM) y Viernes (3:00 PM)', true, 5)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,

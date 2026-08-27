@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, Send, MapPin, Calendar, User, Phone, Home, FileText, ShoppingBag, Sparkles, CreditCard, Copy, CheckCircle2, Truck, Building2, Store, Clock, Info, Navigation, ExternalLink, Package, AlertCircle } from 'lucide-react';
 import { CartItem, Order, StoreSettings } from '../types';
 import { 
@@ -11,6 +11,8 @@ import {
   RiveraCargoBranch,
   NacionalBranch,
   MolinaBranch,
+  ShippingAgency,
+  getStoredAgencies,
   getStoredPalominoBranches,
   getStoredRiveraBranches,
   getStoredNacionalBranches,
@@ -66,10 +68,44 @@ export const CartDrawer: React.FC<Props> = ({
   const [copiedField, setCopiedField] = useState<string>('');
   const [formError, setFormError] = useState('');
 
-  const activePalominoBranches = getStoredPalominoBranches();
-  const activeRiveraBranches = getStoredRiveraBranches();
-  const activeNacionalBranches = getStoredNacionalBranches();
-  const activeMolinaBranches = getStoredMolinaBranches();
+  // Reactive Agencies & Branches State
+  const [agenciesList, setAgenciesList] = useState<ShippingAgency[]>(getStoredAgencies);
+  const [activePalominoBranches, setActivePalominoBranches] = useState<PalominoBranch[]>(getStoredPalominoBranches);
+  const [activeRiveraBranches, setActiveRiveraBranches] = useState<RiveraCargoBranch[]>(getStoredRiveraBranches);
+  const [activeNacionalBranches, setActiveNacionalBranches] = useState<NacionalBranch[]>(getStoredNacionalBranches);
+  const [activeMolinaBranches, setActiveMolinaBranches] = useState<MolinaBranch[]>(getStoredMolinaBranches);
+
+  const refreshShippingData = () => {
+    setAgenciesList(getStoredAgencies());
+    setActivePalominoBranches(getStoredPalominoBranches());
+    setActiveRiveraBranches(getStoredRiveraBranches());
+    setActiveNacionalBranches(getStoredNacionalBranches());
+    setActiveMolinaBranches(getStoredMolinaBranches());
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshShippingData();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleUpdate = () => refreshShippingData();
+    window.addEventListener('uberris_agencies_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('uberris_agencies_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const palominoAgency = agenciesList.find(a => a.type === 'palomino' || a.id === 'palomino');
+  const riveraAgency = agenciesList.find(a => a.type === 'rivera_cargo' || a.id === 'rivera_cargo');
+  const shalomAgency = agenciesList.find(a => a.type === 'shalom' || a.id === 'shalom');
+  const internacionalAgency = agenciesList.find(a => a.type === 'agencia_nacional' || a.id === 'agencia_nacional');
+  const molinaAgency = agenciesList.find(a => a.type === 'agencia_molina' || a.id === 'agencia_molina');
+
+  const internacionalName = internacionalAgency?.name || 'Agencia Internacional';
 
   const currentPalominoBranch: PalominoBranch | undefined = activePalominoBranches.find(
     (b) => b.id === selectedPalominoId
@@ -257,9 +293,10 @@ ${currentRiveraBranch.phone ? `📞 *Teléfono Counter:* ${currentRiveraBranch.p
 ⚠️ *Flete Interprovincial:* Pago contra entrega en ventanilla Shalom al retirar`;
     } else if (shippingType === 'agencia_nacional') {
       shippingBlockText = 
-`🚚 *ENVÍO POR AGENCIA NACIONAL (Selva Central):*
-🗓️ *Día de Despacho:* VIERNES 1:00 PM (Único día)
+`🚚 *ENVÍO POR ${internacionalName.toUpperCase()} (Selva Central):*
+🗓️ *Día de Despacho:* ${internacionalAgency?.dispatchDaysSummary || 'VIERNES 1:00 PM (Único día)'}
 🏢 *Destino:* ${currentNacionalBranch.name}
+📍 *Sede / Agencia:* ${currentNacionalBranch.address}
 🕒 *Horario:* ${currentNacionalBranch.dispatchSchedule} | ${currentNacionalBranch.arrivalNotice}
 ⚠️ *Flete:* Pago contra entrega en destino`;
     } else {
@@ -648,7 +685,7 @@ ${totalsBreakdownText}
                             <span className="font-extrabold text-amber-700 dark:text-amber-300 uppercase tracking-wide block">
                               ¿BUSCAS ENVÍO A SELVA CENTRAL?
                             </span>
-                            <span>Los envíos a Selva Central salen únicamente los <strong>Viernes</strong> vía Agencia Nacional.</span>
+                            <span>Los envíos a Selva Central salen únicamente los <strong>Viernes</strong> vía {internacionalName}.</span>
                           </div>
                         </div>
                         <button
@@ -659,7 +696,7 @@ ${totalsBreakdownText}
                           }}
                           className="w-full sm:w-auto px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg shadow-sm border border-amber-300 transition-transform active:scale-95 shrink-0 flex items-center justify-center gap-1 cursor-pointer"
                         >
-                          <span>Ver Agencia Nacional (Viernes)</span>
+                          <span>Ver {internacionalName} (Viernes)</span>
                           <span>➔</span>
                         </button>
                       </div>
@@ -677,87 +714,97 @@ ${totalsBreakdownText}
                   </label>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setShippingType('palomino')}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
-                        shippingType === 'palomino'
-                          ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
-                          : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
-                      }`}
-                    >
-                      <Truck className="w-4 h-4" />
-                      <span className="leading-tight text-[11px]">Expreso Palomino</span>
-                    </button>
+                    {(!palominoAgency || palominoAgency.active !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => setShippingType('palomino')}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
+                          shippingType === 'palomino'
+                            ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
+                            : isDarkMode
+                            ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
+                        }`}
+                      >
+                        <Truck className="w-4 h-4" />
+                        <span className="leading-tight text-[11px]">{palominoAgency?.name || 'Expreso Palomino'}</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShippingType('rivera_cargo')}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
-                        shippingType === 'rivera_cargo'
-                          ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
-                          : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
-                      }`}
-                    >
-                      <Navigation className="w-4 h-4" />
-                      <span className="leading-tight text-[11px]">Rivera Cargo</span>
-                    </button>
+                    {(!riveraAgency || riveraAgency.active !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => setShippingType('rivera_cargo')}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
+                          shippingType === 'rivera_cargo'
+                            ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
+                            : isDarkMode
+                            ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
+                        }`}
+                      >
+                        <Navigation className="w-4 h-4" />
+                        <span className="leading-tight text-[11px]">{riveraAgency?.name || 'Rivera Cargo'}</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShippingType('shalom')}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all relative ${
-                        shippingType === 'shalom'
-                          ? 'border-red-500 bg-red-500/15 text-red-500 shadow-sm ring-2 ring-red-500/60 dark:text-red-400'
-                          : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-red-500/40'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-red-500/40'
-                      }`}
-                    >
-                      <Package className="w-4 h-4 text-red-500" />
-                      <span className="leading-tight text-[11px] font-bold">Shalom</span>
-                      <span className="text-[7.5px] px-1 py-0.2 rounded-full bg-red-600 text-white font-black tracking-wider uppercase">
-                        Todo Perú (+S/10)
-                      </span>
-                    </button>
+                    {(!shalomAgency || shalomAgency.active !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => setShippingType('shalom')}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all relative ${
+                          shippingType === 'shalom'
+                            ? 'border-red-500 bg-red-500/15 text-red-500 shadow-sm ring-2 ring-red-500/60 dark:text-red-400'
+                            : isDarkMode
+                            ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-red-500/40'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-red-500/40'
+                        }`}
+                      >
+                        <Package className="w-4 h-4 text-red-500" />
+                        <span className="leading-tight text-[11px] font-bold">{shalomAgency?.name || 'Shalom'}</span>
+                        <span className="text-[7.5px] px-1 py-0.2 rounded-full bg-red-600 text-white font-black tracking-wider uppercase">
+                          Todo Perú (+S/10)
+                        </span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShippingType('agencia_nacional');
-                        setDispatchDay('Viernes');
-                      }}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all relative ${
-                        shippingType === 'agencia_nacional'
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-sm ring-2 ring-emerald-500/50'
-                          : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4 text-emerald-400" />
-                      <span className="leading-tight text-[11px] font-bold">Ag. Nacional</span>
-                      <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black tracking-wide">SELVA CENTRAL</span>
-                    </button>
+                    {(!internacionalAgency || internacionalAgency.active !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShippingType('agencia_nacional');
+                          setDispatchDay('Viernes');
+                        }}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all relative ${
+                          shippingType === 'agencia_nacional'
+                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-sm ring-2 ring-emerald-500/50'
+                            : isDarkMode
+                            ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4 text-emerald-400" />
+                        <span className="leading-tight text-[11px] font-bold">{internacionalName}</span>
+                        <span className="text-[8px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black tracking-wide">SELVA CENTRAL</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShippingType('agencia_molina')}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
-                        shippingType === 'agencia_molina'
-                          ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
-                          : isDarkMode
-                          ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
-                      }`}
-                    >
-                      <Truck className="w-4 h-4 text-amber-400" />
-                      <span className="leading-tight text-[11px]">Ag. Molina</span>
-                    </button>
+                    {(!molinaAgency || molinaAgency.active !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => setShippingType('agencia_molina')}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center gap-1 text-xs font-bold transition-all ${
+                          shippingType === 'agencia_molina'
+                            ? 'border-[#60b64d] bg-[#60b64d]/15 text-[#60b64d] shadow-sm ring-1 ring-[#60b64d]'
+                            : isDarkMode
+                            ? 'border-[#1c3326] bg-[#0d1712] text-slate-300 hover:border-[#60b64d]/40'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-[#60b64d]/40'
+                        }`}
+                      >
+                        <Truck className="w-4 h-4 text-amber-400" />
+                        <span className="leading-tight text-[11px]">{molinaAgency?.name || 'Ag. Molina'}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Palomino Branches Dropdown & Details */}
@@ -1108,7 +1155,7 @@ ${totalsBreakdownText}
                     </div>
                   )}
 
-                  {/* Agencia Nacional (Selva Central) */}
+                  {/* Agencia Internacional (Selva Central) */}
                   {shippingType === 'agencia_nacional' && (
                     <div className={`p-3 rounded-xl border space-y-2.5 animate-in fade-in duration-150 ${
                       isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-emerald-50/80 border-emerald-300 shadow-xs'
@@ -1117,7 +1164,7 @@ ${totalsBreakdownText}
                         <label className={`text-[11px] font-bold block mb-1 ${
                           isDarkMode ? 'text-slate-300' : 'text-slate-800'
                         }`}>
-                          Selecciona el Destino (Selva Central):
+                          Selecciona el Destino ({internacionalName} - Selva Central):
                         </label>
                         <select
                           value={selectedNacionalId}
@@ -1140,8 +1187,13 @@ ${totalsBreakdownText}
                         }`}>
                           <div className="flex items-center gap-1.5 font-bold text-emerald-400">
                             <Clock className="w-4 h-4 text-[#60b64d]" />
-                            <span>Horario de Salida y Entrega</span>
+                            <span>Horario de Salida y Entrega ({internacionalName})</span>
                           </div>
+                          {currentNacionalBranch.address && (
+                            <p className={`text-[11px] font-semibold ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
+                              📍 <strong>Sede:</strong> {currentNacionalBranch.address}
+                            </p>
+                          )}
                           <p className={`text-[11px] ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                             🚚 <strong>Envío:</strong> {currentNacionalBranch.dispatchSchedule}
                           </p>
@@ -1154,7 +1206,7 @@ ${totalsBreakdownText}
                       <div className={`p-2.5 rounded-xl border text-[11px] leading-relaxed ${
                         isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-300 text-amber-950 font-medium'
                       }`}>
-                        ⚠️ <strong>Importante Selva Central:</strong> Para Huanta, Pichanaki, Chanchamayo, Satipo, Villa Rica y Mazamari los despachos se realizan únicamente los días <strong>Viernes a la 1:00 PM</strong>.
+                        ⚠️ <strong>Importante Selva Central ({internacionalName}):</strong> Para Huanta, Pichanaki, Chanchamayo, Satipo, Villa Rica y Mazamari los despachos se realizan únicamente los días <strong>Viernes a la 1:00 PM</strong>.
                       </div>
                     </div>
                   )}

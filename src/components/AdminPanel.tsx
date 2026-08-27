@@ -391,6 +391,7 @@ export const AdminPanel: React.FC<Props> = ({
     const updated = agenciesList.map(a => a.id === agencyId ? { ...a, active: !a.active } : a);
     setAgenciesList(updated);
     localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    window.dispatchEvent(new Event('uberris_agencies_updated'));
     onShowToast('Estado de Agencia Actualizado', 'Los cambios se han guardado correctamente.', 'success');
   };
 
@@ -419,6 +420,7 @@ export const AdminPanel: React.FC<Props> = ({
 
     setAgenciesList(updated);
     localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    window.dispatchEvent(new Event('uberris_agencies_updated'));
     setIsAgencyModalOpen(false);
     setAgencyModalData(null);
     onShowToast('Agencia Guardada', 'La agencia de transporte ha sido actualizada.', 'success');
@@ -429,6 +431,7 @@ export const AdminPanel: React.FC<Props> = ({
     const updated = agenciesList.filter(a => a.id !== agencyId);
     setAgenciesList(updated);
     localStorage.setItem('uberris_agencies', JSON.stringify(updated));
+    window.dispatchEvent(new Event('uberris_agencies_updated'));
     onShowToast('Agencia Eliminada', 'La agencia fue removida del sistema.', 'info');
   };
 
@@ -467,6 +470,7 @@ export const AdminPanel: React.FC<Props> = ({
       localStorage.setItem('uberris_molina_branches', JSON.stringify(updated));
     }
 
+    window.dispatchEvent(new Event('uberris_agencies_updated'));
     setBranchModalData(null);
     onShowToast('Sede Guardada', 'Los datos de la sede han sido actualizados con éxito.', 'success');
   };
@@ -494,6 +498,7 @@ export const AdminPanel: React.FC<Props> = ({
       setMolinaBranches(updated);
       localStorage.setItem('uberris_molina_branches', JSON.stringify(updated));
     }
+    window.dispatchEvent(new Event('uberris_agencies_updated'));
     onShowToast('Sede Eliminada', 'La sede ha sido removida del listado.', 'info');
   };
 
