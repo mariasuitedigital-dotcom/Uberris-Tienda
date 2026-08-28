@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { ProductCard } from './components/ProductCard';
 import { ProductQuickViewModal } from './components/ProductQuickViewModal';
@@ -55,7 +56,8 @@ import {
   MapPin,
   Sparkles,
   ShoppingBag,
-  LayoutDashboard
+  LayoutDashboard,
+  Home
 } from 'lucide-react';
 
 export default function App() {
@@ -259,9 +261,17 @@ export default function App() {
   }, [products]);
 
   const handleScrollToCatalog = () => {
-    // Scroll smoothly to the catalog section
+    // Scroll smoothly to the catalog section with comfortable header offset
     const el = document.getElementById('catalogo-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (el) {
+      const yOffset = -80;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  const handleCategorySelect = (cat: ProductCategory | 'Todos') => {
+    setSelectedCategory(cat);
   };
 
   // 7. Quick View Modal Product
@@ -499,7 +509,7 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedCategory={selectedCategory}
-        onCategorySelect={setSelectedCategory}
+        onCategorySelect={handleCategorySelect}
         cartCount={totalCartCount}
         onOpenCart={() => setIsCartOpen(true)}
         isDarkMode={isDarkMode}
@@ -522,86 +532,116 @@ export default function App() {
       {currentView === 'catalog' ? (
         <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-4 sm:space-y-6 mb-4 sm:mb-8">
           
-          {/* Hero Banner with Apurímac Artisan Atmosphere */}
-          <FloatingBreadHero 
-            settings={storeSettings} 
-            isDarkMode={isDarkMode}
-            products={products}
-            onSelectCategory={(cat) => {
-              setSelectedCategory(cat);
-              handleScrollToCatalog();
-            }}
-          />
-
-          {/* SECTION: LO MÁS PEDIDO */}
-          {popularProducts.length > 0 && (
+          {/* Hero Banner & Featured Sections only when viewing 'Todos' */}
+          {selectedCategory === 'Todos' && !searchQuery && (
             <>
-              <section className="space-y-4">
-                <SectionHeader
-                  title="Lo más pedido"
-                  onViewAll={handleScrollToCatalog}
-                />
-                <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                  {popularProducts.map((prod) => (
-                    <HorizontalProductCard
-                      key={`popular-${prod.id}`}
-                      product={prod}
-                      badgeType="popular"
-                      onAddToCart={handleAddToCart}
-                      onQuickView={setQuickViewProduct}
-                      isDarkMode={isDarkMode}
-                    />
-                  ))}
-                </div>
-              </section>
-              <AndeanDivider label="Ofertas & Promociones Especiales" />
-            </>
-          )}
+              {/* Hero Banner with Apurímac Artisan Atmosphere */}
+              <FloatingBreadHero 
+                settings={storeSettings} 
+                isDarkMode={isDarkMode}
+                products={products}
+                onSelectCategory={handleCategorySelect}
+              />
 
-          {/* SECTION: PROMOCIONES */}
-          {promoProducts.length > 0 && (
-            <>
-              <section className="space-y-4">
-                <SectionHeader
-                  title="Promociones"
-                  onViewAll={handleScrollToCatalog}
-                />
-                <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-                  {promoProducts.map((prod) => (
-                    <HorizontalProductCard
-                      key={`promo-${prod.id}`}
-                      product={prod}
-                      badgeType="promo"
-                      onAddToCart={handleAddToCart}
-                      onQuickView={setQuickViewProduct}
-                      isDarkMode={isDarkMode}
+              {/* SECTION: LO MÁS PEDIDO */}
+              {popularProducts.length > 0 && (
+                <>
+                  <section className="space-y-4">
+                    <SectionHeader
+                      title="Lo más pedido"
+                      onViewAll={() => setSelectedCategory('Todos')}
                     />
-                  ))}
-                </div>
-              </section>
-              <AndeanDivider label="Catálogo Completo de Productos" />
+                    <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+                      {popularProducts.map((prod) => (
+                        <HorizontalProductCard
+                          key={`popular-${prod.id}`}
+                          product={prod}
+                          badgeType="popular"
+                          onAddToCart={handleAddToCart}
+                          onQuickView={setQuickViewProduct}
+                          isDarkMode={isDarkMode}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                  <AndeanDivider label="Ofertas & Promociones Especiales" />
+                </>
+              )}
+
+              {/* SECTION: PROMOCIONES */}
+              {promoProducts.length > 0 && (
+                <>
+                  <section className="space-y-4">
+                    <SectionHeader
+                      title="Promociones"
+                      onViewAll={() => setSelectedCategory('Todos')}
+                    />
+                    <div className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+                      {promoProducts.map((prod) => (
+                        <HorizontalProductCard
+                          key={`promo-${prod.id}`}
+                          product={prod}
+                          badgeType="promo"
+                          onAddToCart={handleAddToCart}
+                          onQuickView={setQuickViewProduct}
+                          isDarkMode={isDarkMode}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                  <AndeanDivider label="Catálogo Completo de Productos" />
+                </>
+              )}
             </>
           )}
 
           {/* Catalog Header & Count */}
-          <div id="catalogo-section" className="flex items-center justify-between pt-8 border-t border-slate-500/20">
-            <div>
-              <h2 className="font-serif-craft text-2xl font-bold">
-                {selectedCategory === 'Todos' ? 'Nuestros Sabores Artesanales' : `Especialidades de ${selectedCategory}`}
-              </h2>
+          <div id="catalogo-section" className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${selectedCategory === 'Todos' && !searchQuery ? 'pt-8 border-t border-slate-500/20' : 'pt-2'}`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-serif-craft text-2xl font-bold">
+                  {selectedCategory === 'Todos' ? 'Nuestros Sabores Artesanales' : `Especialidades de ${selectedCategory}`}
+                </h2>
+                {selectedCategory !== 'Todos' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#60b64d]/20 border border-[#60b64d]/40 text-[#60b64d]">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    Filtrado
+                  </span>
+                )}
+              </div>
               <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 Mostrando {filteredProducts.length} productos listos para despacho
               </p>
             </div>
 
-            {searchQuery && (
-              <span className="text-xs font-semibold text-[#60b64d]">
-                Filtrando por: "{searchQuery}"
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedCategory !== 'Todos' && (
+                <button
+                  id="btn-back-to-home"
+                  onClick={() => {
+                    setSelectedCategory('Todos');
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer ${
+                    isDarkMode
+                      ? 'bg-[#0d1712] border-[#1c3326] text-amber-400 hover:bg-[#14231b]'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                  }`}
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Inicio</span>
+                </button>
+              )}
+
+              {searchQuery && (
+                <span className="text-xs font-semibold text-[#60b64d]">
+                  Filtrando por: "{searchQuery}"
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Products Grid */}
+          {/* Products Grid (Direct Instant Display) */}
           {filteredProducts.length === 0 ? (
             <div className={`p-12 text-center rounded-2xl border ${isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200'}`}>
               <Wheat className="w-12 h-12 text-slate-600 mx-auto mb-3" />
