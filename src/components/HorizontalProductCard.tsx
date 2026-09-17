@@ -47,15 +47,27 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
       }`}
     >
       {/* Top Image area */}
-      <div className="relative h-36 sm:h-44 overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
+      <div className={`relative aspect-square w-full overflow-hidden flex items-center justify-center ${
+        isDarkMode ? 'bg-[#07120c]' : 'bg-[#f6f9f6]'
+      }`}>
         {!imgError && product.image ? (
-          <img
-            src={cleanDirectImageUrl(product.image)}
-            alt={product.name}
-            referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-          />
+          <>
+            {/* Subtle atmospheric ambient glow matching product colors */}
+            <img
+              src={cleanDirectImageUrl(product.image)}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover blur-xl opacity-20 scale-125 pointer-events-none"
+            />
+            {/* Full product image without clipping */}
+            <img
+              src={cleanDirectImageUrl(product.image)}
+              alt={product.name}
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
+              className="relative z-1 max-h-full max-w-full w-auto h-auto object-contain p-2 transition-transform duration-300 hover:scale-105"
+            />
+          </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
             <span className="text-3xl mb-1 filter drop-shadow">
@@ -69,16 +81,16 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
 
         {/* Badge: AGOTADO or MÁS PEDIDO or PROMO */}
         {isOutOfStock ? (
-          <span className="absolute top-2 left-2 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center shadow-md">
+          <span className="absolute top-2 left-2 z-2 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center shadow-md">
             AGOTADO
           </span>
         ) : badgeType === 'popular' ? (
-          <span className="absolute top-2 left-2 bg-amber-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
+          <span className="absolute top-2 left-2 z-2 bg-amber-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
             <Flame className="w-2.5 h-2.5 fill-slate-950" />
             MÁS PEDIDO
           </span>
         ) : badgeType === 'promo' ? (
-          <span className="absolute top-2 left-2 bg-[#60b64d] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
+          <span className="absolute top-2 left-2 z-2 bg-[#60b64d] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-0.5 shadow-md">
             <Sparkles className="w-2.5 h-2.5" />
             PROMO
           </span>
@@ -90,7 +102,7 @@ export const HorizontalProductCard: React.FC<HorizontalProductCardProps> = ({
             e.stopPropagation();
             onQuickView(product);
           }}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+          className="absolute top-2 right-2 z-2 p-1.5 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
           title="Ver detalles"
         >
           <Heart className="w-3 h-3" />

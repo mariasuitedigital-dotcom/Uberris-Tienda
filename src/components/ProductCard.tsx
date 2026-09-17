@@ -53,16 +53,28 @@ export const ProductCard: React.FC<Props> = ({
       }`}
     >
       {/* Product Image & Badges */}
-      <div className="relative h-36 sm:h-48 w-full overflow-hidden bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40">
+      <div className={`relative aspect-square w-full overflow-hidden flex items-center justify-center ${
+        isDarkMode ? 'bg-[#07120c]' : 'bg-[#f6f9f6]'
+      }`}>
         {!imgError && product.image ? (
-          <img
-            src={cleanDirectImageUrl(product.image)}
-            alt={product.name}
-            referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-            loading="lazy"
-          />
+          <>
+            {/* Subtle atmospheric ambient glow matching product colors */}
+            <img
+              src={cleanDirectImageUrl(product.image)}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover blur-xl opacity-20 scale-125 pointer-events-none"
+            />
+            {/* Full product image displayed 100% without cropping */}
+            <img
+              src={cleanDirectImageUrl(product.image)}
+              alt={product.name}
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
+              className="relative z-1 max-h-full max-w-full w-auto h-auto object-contain p-2 group-hover:scale-105 transition-transform duration-300 ease-out"
+              loading="lazy"
+            />
+          </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
             <span className="text-3xl sm:text-4xl mb-1 filter drop-shadow">
@@ -74,22 +86,19 @@ export const ProductCard: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Subtle Bottom Vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity pointer-events-none" />
-
         {/* Out of Stock Badge */}
         {isOutOfStock ? (
-          <span className="absolute top-2 left-2 px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase rounded-full bg-rose-600 text-white shadow-md">
+          <span className="absolute top-2 left-2 z-2 px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase rounded-full bg-rose-600 text-white shadow-md">
             Agotado
           </span>
         ) : product.badge ? (
-          <span className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded-full bg-[#60b64d] text-white shadow-md">
+          <span className="absolute top-2 left-2 z-2 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded-full bg-[#60b64d] text-white shadow-md">
             {product.badge}
           </span>
         ) : null}
 
         {/* Category tag */}
-        <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[9px] font-semibold rounded-md bg-black/60 backdrop-blur-xs text-emerald-300 border border-white/10 hidden sm:block">
+        <span className="absolute top-2 right-2 z-2 px-1.5 py-0.5 text-[9px] font-semibold rounded-md bg-black/60 backdrop-blur-xs text-emerald-300 border border-white/10 hidden sm:block">
           {product.category}
         </span>
 
@@ -99,7 +108,7 @@ export const ProductCard: React.FC<Props> = ({
             e.stopPropagation();
             onQuickView(product);
           }}
-          className="absolute bottom-2 right-2 p-1.5 rounded-xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all shadow-md opacity-90 group-hover:opacity-100"
+          className="absolute bottom-2 right-2 z-2 p-1.5 rounded-xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all shadow-md opacity-90 group-hover:opacity-100"
           title="Vista Rápida"
         >
           <Eye className="w-3.5 h-3.5 text-emerald-700" />
@@ -107,7 +116,7 @@ export const ProductCard: React.FC<Props> = ({
 
         {/* Units per package callout if > 1 */}
         {product.unitsPerPackage > 1 && (
-          <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-amber-500/90 backdrop-blur-xs text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-xs">
+          <div className="absolute bottom-2 left-2 z-2 px-1.5 py-0.5 rounded-md bg-amber-500/90 backdrop-blur-xs text-slate-950 font-bold text-[9px] flex items-center gap-1 shadow-xs">
             <Sparkles className="w-2.5 h-2.5" />
             <span className="hidden sm:inline">{product.unitsPerPackage} und. / paquete</span>
             <span className="sm:hidden">{product.unitsPerPackage}u</span>

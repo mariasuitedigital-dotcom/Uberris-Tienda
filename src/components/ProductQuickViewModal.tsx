@@ -67,16 +67,28 @@ export const ProductQuickViewModal: React.FC<Props> = ({
         </button>
 
         <div className="flex flex-col md:grid md:grid-cols-2 overflow-y-auto no-scrollbar">
-          {/* Product Image */}
-          <div className="relative shrink-0 h-48 sm:h-64 md:h-full min-h-[160px] md:min-h-[260px] bg-gradient-to-br from-emerald-900/40 via-slate-800 to-amber-950/40 overflow-hidden flex items-center justify-center">
+          {/* Product Image - Full Uncropped Display */}
+          <div className={`relative shrink-0 h-64 sm:h-80 md:h-full min-h-[250px] md:min-h-[360px] overflow-hidden flex items-center justify-center p-4 ${
+            isDarkMode ? 'bg-[#060e09]' : 'bg-[#f4f7f4]'
+          }`}>
             {!imgError && product.image ? (
-              <img
-                src={cleanDirectImageUrl(product.image)}
-                alt={product.name}
-                referrerPolicy="no-referrer"
-                onError={() => setImgError(true)}
-                className="w-full h-full object-cover"
-              />
+              <>
+                {/* Ambient blur matching photo colors */}
+                <img
+                  src={cleanDirectImageUrl(product.image)}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-25 scale-125 pointer-events-none"
+                />
+                {/* 100% visible product image without any cropping */}
+                <img
+                  src={cleanDirectImageUrl(product.image)}
+                  alt={product.name}
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="relative z-1 max-h-full max-w-full w-auto h-auto object-contain mx-auto drop-shadow-lg transition-transform duration-300 hover:scale-105"
+                />
+              </>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-stone-900 text-center">
                 <span className="text-5xl mb-2 filter drop-shadow">
@@ -88,14 +100,10 @@ export const ProductQuickViewModal: React.FC<Props> = ({
               </div>
             )}
             {product.badge && (
-              <span className="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold rounded-full bg-[#60b64d] text-white shadow-md">
+              <span className="absolute top-2 left-2 sm:top-3 sm:left-3 z-2 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold rounded-full bg-[#60b64d] text-white shadow-md">
                 {product.badge}
               </span>
             )}
-            <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 p-1.5 sm:p-2.5 rounded-xl bg-black/60 backdrop-blur-md text-white text-[10px] sm:text-xs flex items-center gap-1.5 sm:gap-2 border border-white/10">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#60b64d] shrink-0" />
-              <span className="line-clamp-1">{product.originLocation || settings?.originLocationText || 'Valle de Apurímac (Abancay - Andahuaylas)'}</span>
-            </div>
           </div>
 
           {/* Details Content */}
@@ -110,6 +118,15 @@ export const ProductQuickViewModal: React.FC<Props> = ({
               <h2 className="font-serif-craft text-xl sm:text-2xl font-bold leading-tight mb-1 sm:mb-2">
                 {product.name}
               </h2>
+
+              {/* Origin Location Pill (Clean & Non-obstructive) */}
+              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs mb-3 font-medium ${
+                isDarkMode ? 'bg-[#0e1f15] text-emerald-300 border border-[#1c3a28]' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              }`}>
+                <MapPin className="w-3.5 h-3.5 text-[#60b64d] shrink-0" />
+                <span>{product.originLocation || settings?.originLocationText || 'Uripa - Chincheros - Apurímac'}</span>
+              </div>
+
               <p className={`text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                 {product.description}
               </p>
