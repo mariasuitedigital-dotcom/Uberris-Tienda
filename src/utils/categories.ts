@@ -59,7 +59,33 @@ export function getMergedCategories(
     });
   });
 
-  // 2. Merge custom categories from settings
+  // 2. Merge db_categories from localStorage sync
+  try {
+    const savedDbCats = typeof window !== 'undefined' ? localStorage.getItem('uberris_db_categories') : null;
+    if (savedDbCats) {
+      const parsedCats = JSON.parse(savedDbCats);
+      if (Array.isArray(parsedCats)) {
+        parsedCats.forEach((cat) => {
+          if (!cat.id) return;
+          const customName = settings?.categoryNames?.[cat.id] || cat.name || cat.id;
+          const customDesc = settings?.categoryDescriptions?.[cat.id] || cat.description || '';
+          const customUrl = cleanDirectImageUrl(settings?.categoryImages?.[cat.id] || '') || cleanDirectImageUrl(cat.image_url || cat.imageUrl || '') || DEFAULT_BASE_CATEGORIES[0].imageUrl;
+
+          map.set(cat.id, {
+            id: cat.id as any,
+            name: customName,
+            description: customDesc,
+            imageUrl: customUrl,
+            active: cat.active !== false,
+          });
+        });
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // 3. Merge custom categories from settings
   if (settings?.customCategories && Array.isArray(settings.customCategories)) {
     settings.customCategories.forEach((cat) => {
       if (!cat.id) return;
@@ -77,7 +103,7 @@ export function getMergedCategories(
     });
   }
 
-  // 3. Check products for any additional categories not yet registered
+  // 4. Check products for any additional categories not yet registered
   if (products && Array.isArray(products)) {
     products.forEach((p) => {
       if (p.category && p.category !== 'Todos' as any && !map.has(p.category)) {

@@ -24,9 +24,11 @@ import {
   dbDeleteOrder,
   dbUpsertProduct,
   dbDeleteProduct,
+  dbFetchCategories,
   subscribeToSupabaseOrders,
   subscribeToSupabaseProducts,
   subscribeToSupabaseSettings,
+  subscribeToSupabaseCategories,
   isSupabaseConnected
 } from './lib/supabase';
 import {
@@ -104,10 +106,11 @@ export default function App() {
   const fetchSupabaseData = async () => {
     if (!isSupabaseConnected()) return;
     try {
-      const [dbProds, dbOrds, dbSettings] = await Promise.all([
+      const [dbProds, dbOrds, dbSettings, dbCats] = await Promise.all([
         dbFetchProducts(),
         dbFetchOrders(),
-        dbFetchStoreSettings()
+        dbFetchStoreSettings(),
+        dbFetchCategories()
       ]);
       if (dbProds && dbProds.length > 0) {
         setProducts((prevLocal) => {
@@ -130,6 +133,11 @@ export default function App() {
       }
       if (dbSettings) {
         setStoreSettings(dbSettings);
+      }
+      if (dbCats && dbCats.length > 0) {
+        localStorage.setItem('uberris_db_categories', JSON.stringify(dbCats));
+        // Trigger re-render
+        setStoreSettings((prev) => ({ ...prev }));
       }
     } catch (err) {
       console.warn('Supabase fetch notice:', err);
@@ -156,9 +164,7 @@ export default function App() {
           if (prods && prods.length > 0) {
             setProducts((prevLocal) => {
               const map = new Map<string, Product>();
-              // 1. Local products first (preserves user edits and local creations)
               prevLocal.forEach((lp) => map.set(lp.id, lp));
-              // 2. Add Supabase products only if not present locally
               prods.forEach((p) => {
                 if (!map.has(p.id)) {
                   map.set(p.id, p);
@@ -178,11 +184,21 @@ export default function App() {
         });
       });
 
+      const unsubCategories = subscribeToSupabaseCategories(() => {
+        dbFetchCategories().then((cats) => {
+          if (cats && cats.length > 0) {
+            localStorage.setItem('uberris_db_categories', JSON.stringify(cats));
+            setStoreSettings((prev) => ({ ...prev }));
+          }
+        });
+      });
+
       return () => {
         window.removeEventListener('focus', handleFocus);
         unsubOrders();
         unsubProducts();
         unsubSettings();
+        unsubCategories();
       };
     }
 

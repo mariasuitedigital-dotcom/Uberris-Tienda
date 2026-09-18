@@ -1420,6 +1420,38 @@ export const dbDeleteCategory = async (id: string) => {
   }
 };
 
+export const dbFetchCategories = async (): Promise<any[]> => {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase.from('categories').select('*');
+    if (error) {
+      console.warn('Could not fetch categories from Supabase:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching categories:', err);
+    return [];
+  }
+};
+
+export const subscribeToSupabaseCategories = (onDataChange: () => void) => {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+
+  const channel = supabase
+    .channel('categories-realtime-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+      onDataChange();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
+
 /**
  * Utility to convert base64 dataUrl to Blob for Supabase Storage uploads
  */
