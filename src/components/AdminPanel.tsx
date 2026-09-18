@@ -89,6 +89,7 @@ import {
   MolinaBranch,
   ShalomBranch
 } from '../data/shippingDestinations';
+import { getMergedCategories } from '../utils/categories';
 
 interface Props {
   products: Product[];
@@ -360,6 +361,7 @@ export const AdminPanel: React.FC<Props> = ({
   // Product editing modal state
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const availableCategories = useMemo(() => getMergedCategories(settings, products), [settings, products]);
 
   // Production View Sub-tab Mode (Resumen de Hornada vs Hoja de Despacho vs Combinado)
   const [productionViewMode, setProductionViewMode] = useState<'resumen' | 'despacho' | 'combinado'>('resumen');
@@ -4580,11 +4582,12 @@ export const AdminPanel: React.FC<Props> = ({
                       isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
                     }`}
                   >
-                    <option value="Panadería">🍞 Panadería</option>
-                    <option value="Lácteos">🧀 Lácteos</option>
-                    <option value="Embutidos">🥓 Embutidos</option>
-                    <option value="Miel y Dulces">🍯 Miel y Dulces</option>
-                    <option value="Papa Nativa">🥔 Papa Nativa</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.id === 'Panadería' ? '🍞 ' : cat.id === 'Lácteos' ? '🧀 ' : cat.id === 'Embutidos' ? '🥓 ' : cat.id === 'Miel y Dulces' ? '🍯 ' : cat.id === 'Papa Nativa' ? '🥔 ' : '🏷️ '}
+                        {cat.name || cat.id}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
