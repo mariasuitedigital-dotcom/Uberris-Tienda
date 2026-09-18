@@ -26,6 +26,7 @@ import {
   dbDeleteProduct,
   subscribeToSupabaseOrders,
   subscribeToSupabaseProducts,
+  subscribeToSupabaseSettings,
   isSupabaseConnected
 } from './lib/supabase';
 import {
@@ -138,6 +139,12 @@ export default function App() {
   useEffect(() => {
     fetchSupabaseData();
 
+    // Re-fetch when window gains focus on any device
+    const handleFocus = () => {
+      fetchSupabaseData();
+    };
+    window.addEventListener('focus', handleFocus);
+
     if (isSupabaseConnected()) {
       const unsubOrders = subscribeToSupabaseOrders(() => {
         dbFetchOrders().then((ords) => {
@@ -165,11 +172,23 @@ export default function App() {
         });
       });
 
+      const unsubSettings = subscribeToSupabaseSettings(() => {
+        dbFetchStoreSettings().then((settings) => {
+          if (settings) setStoreSettings(settings);
+        });
+      });
+
       return () => {
+        window.removeEventListener('focus', handleFocus);
         unsubOrders();
         unsubProducts();
+        unsubSettings();
       };
     }
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
