@@ -5,6 +5,7 @@ import {
   PackageCheck,
   Package,
   Plus,
+  RefreshCw,
   Printer,
   Copy,
   CheckCircle2,
@@ -105,6 +106,7 @@ interface Props {
   onSaveSettings?: (settings: StoreSettings) => void;
   onShowToast: (title: string, description?: string, type?: 'success' | 'error' | 'info') => void;
   onOpenSupabaseModal?: () => void;
+  onForceSync?: () => void;
   isDarkMode: boolean;
 }
 
@@ -124,6 +126,7 @@ export const AdminPanel: React.FC<Props> = ({
   onSaveSettings,
   onShowToast,
   onOpenSupabaseModal,
+  onForceSync,
   isDarkMode,
 }) => {
   // Main Tab Navigation: 1. Producción & Horno, 2. Pedidos, 3. Inventario, 4. Redes & Footer, 5. Agencias
@@ -2828,7 +2831,7 @@ export const AdminPanel: React.FC<Props> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                     isSupabaseConnected()
                       ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
@@ -2837,6 +2840,16 @@ export const AdminPanel: React.FC<Props> = ({
                     <span className={`w-2 h-2 rounded-full ${isSupabaseConnected() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
                     {isSupabaseConnected() ? 'Sincronización en la Nube Activa' : 'Modo Local (Supabase no conectado)'}
                   </span>
+                  {isSupabaseConnected() && onForceSync && (
+                    <button
+                      onClick={onForceSync}
+                      className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
+                      title="Limpiar caché local y forzar sincronización con Supabase"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Sincronizar Cloud</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -128,8 +128,9 @@ export default function App() {
           return merged;
         });
       }
-      if (dbOrds && dbOrds.length > 0) {
+      if (dbOrds !== null) {
         setOrders(dbOrds);
+        localStorage.setItem('uberris_orders', JSON.stringify(dbOrds));
       }
       if (dbSettings) {
         setStoreSettings(dbSettings);
@@ -141,6 +142,23 @@ export default function App() {
       }
     } catch (err) {
       console.warn('Supabase fetch notice:', err);
+    }
+  };
+
+  const forceSyncSupabase = async () => {
+    if (!isSupabaseConnected()) {
+      showToast('Modo Local', 'Supabase no está conectado o configurado.', 'error');
+      return;
+    }
+    try {
+      localStorage.removeItem('uberris_orders');
+      localStorage.removeItem('uberris_products');
+      localStorage.removeItem('uberris_db_categories');
+      localStorage.removeItem('uberris_store_settings');
+      await fetchSupabaseData();
+      showToast('Sincronización Forzada', 'Caché local limpiada y datos actualizados desde la nube con éxito.', 'success');
+    } catch (e) {
+      showToast('Error de Sincronización', 'No se pudieron sincronizar los datos con Supabase.', 'error');
     }
   };
 
