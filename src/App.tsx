@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { ProductCard } from './components/ProductCard';
@@ -38,7 +38,9 @@ import {
   apiDeleteOrder,
   apiFetchProducts,
   apiSaveProducts,
-  apiSyncAll
+  apiSyncAll,
+  apiFetchSyncState,
+  apiSaveSettings
 } from './lib/supabase';
 import {
   Product,
@@ -111,27 +113,40 @@ export default function App() {
     localStorage.setItem('uberris_settings', JSON.stringify(storeSettings));
   }, [storeSettings]);
 
-  // Load from Central Cloud Server and Supabase on mount and listen to realtime updates
-  const fetchSupabaseData = async () => {
-    // 1. Always pull from Central Server API first (guarantees cross-device sync out of the box)
+  // Version tracker to prevent redundant re-renders
+  const lastSyncedVersion = useRef<number>(0);
+
+  // Complete multi-device synchronization engine
+  const syncAllData = async () => {
+    // 1. Central Server Synchronization (Zero configuration, instantaneous, covers mobile phones & PCs)
     try {
-      const [apiOrds, apiProds] = await Promise.all([
-        apiFetchOrders(),
-        apiFetchProducts()
-      ]);
-      if (apiOrds && Array.isArray(apiOrds) && apiOrds.length > 0) {
-        setOrders(apiOrds);
-        localStorage.setItem('uberris_orders', JSON.stringify(apiOrds));
-      }
-      if (apiProds && Array.isArray(apiProds) && apiProds.length > 0) {
-        setProducts(apiProds);
-        localStorage.setItem('uberris_products', JSON.stringify(apiProds));
+      const cloudState = await apiFetchSyncState();
+      if (cloudState && cloudState.products) {
+        if (cloudState.version !== lastSyncedVersion.current) {
+          lastSyncedVersion.current = cloudState.version;
+
+          if (Array.isArray(cloudState.products) && cloudState.products.length > 0) {
+            setProducts(cloudState.products);
+            localStorage.setItem('uberris_products', JSON.stringify(cloudState.products));
+          }
+          if (Array.isArray(cloudState.orders)) {
+            setOrders(cloudState.orders);
+            localStorage.setItem('uberris_orders', JSON.stringify(cloudState.orders));
+          }
+          if (cloudState.settings) {
+            setStoreSettings(cloudState.settings);
+            localStorage.setItem('uberris_settings', JSON.stringify(cloudState.settings));
+          }
+          if (Array.isArray(cloudState.categories) && cloudState.categories.length > 0) {
+            localStorage.setItem('uberris_db_categories', JSON.stringify(cloudState.categories));
+          }
+        }
       }
     } catch (e) {
-      // server offline or static fallback
+      // offline fallback
     }
 
-    // 2. If Supabase is connected, pull from Supabase Postgres
+    // 2. If Supabase is connected, pull from Supabase Postgres as well
     if (!isSupabaseConnected()) return;
     try {
       const [dbProds, dbOrds, dbSettings, dbCats] = await Promise.all([
@@ -161,11 +176,13 @@ export default function App() {
     }
   };
 
+  const fetchSupabaseData = syncAllData;
+
   const forceSyncSupabase = async () => {
     try {
       clearAllLocalUberrisCache();
       await autoSyncCloudCredentials();
-      await fetchSupabaseData();
+      await syncAllData();
       showToast('Sincronización Total Completada', 'Se limpió la caché y se sincronizaron los pedidos y catálogo en vivo.', 'success');
     } catch (e) {
       showToast('Aviso de Sincronización', 'Verifica la conexión a internet.', 'info');
@@ -225,37 +242,26 @@ export default function App() {
     // Auto-bootstrap: fetches server credentials so ANY phone/computer connects with 0 manual steps!
     const bootSync = async () => {
       await autoSyncCloudCredentials();
-      await fetchSupabaseData();
+      await syncAllData();
       setupRealtimeSubscriptions();
     };
     bootSync();
 
-    // Re-fetch when window gains focus on any device or tab switch
+    // Re-fetch when window gains focus or tab becomes visible on any phone or PC
     const handleFocus = () => {
-      fetchSupabaseData();
+      syncAllData();
     };
     window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
 
-    // Continuous 5s background sync: guarantees all phones, tablets and PCs stay 100% in sync
-    const pollInterval = setInterval(async () => {
-      // 1. Poll Central Server
-      const apiOrds = await apiFetchOrders();
-      if (apiOrds && Array.isArray(apiOrds) && apiOrds.length > 0) {
-        setOrders(apiOrds);
-      }
-
-      // 2. Poll Supabase if connected
-      if (isSupabaseConnected()) {
-        const ords = await dbFetchOrders();
-        if (ords !== null) {
-          setOrders(ords);
-          localStorage.setItem('uberris_orders', JSON.stringify(ords));
-        }
-      }
-    }, 5000);
+    // Continuous 3.5s background sync: guarantees all phones, tablets and PCs stay 100% in sync
+    const pollInterval = setInterval(() => {
+      syncAllData();
+    }, 3500);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
       clearInterval(pollInterval);
       unsubOrders();
       unsubProducts();
@@ -579,6 +585,7 @@ export default function App() {
   const handleSaveStoreSettings = async (newSettings: StoreSettings) => {
     setStoreSettings(newSettings);
     localStorage.setItem('uberris_settings', JSON.stringify(newSettings));
+    apiSaveSettings(newSettings).catch(() => {});
     if (isSupabaseConnected()) {
       try {
         await dbUpsertStoreSettings(newSettings);

@@ -193,6 +193,44 @@ export const apiSaveProducts = async (products: Product[]): Promise<boolean> => 
   }
 };
 
+export interface ServerSyncState {
+  version: number;
+  updatedAt: string;
+  orders: Order[];
+  products: Product[];
+  settings: StoreSettings | null;
+  categories: any[];
+  hasSupabase: boolean;
+}
+
+export const apiFetchSyncState = async (): Promise<ServerSyncState | null> => {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/sync-state');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.products)) {
+        return data as ServerSyncState;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const apiSaveSettings = async (settings: StoreSettings): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings }),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const apiSyncAll = async (payload: { orders?: Order[]; products?: Product[]; settings?: any }): Promise<boolean> => {
   if (typeof fetch === 'undefined') return false;
   try {
