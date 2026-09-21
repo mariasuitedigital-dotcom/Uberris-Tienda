@@ -16,12 +16,16 @@ import {
   Image as ImageIcon,
   Sparkles,
   Info,
-  HelpCircle
+  HelpCircle,
+  Share2,
+  Trash2
 } from 'lucide-react';
 import {
   isSupabaseConnected,
   getSavedSupabaseConfig,
   saveSupabaseCredentialsLocal,
+  getDeviceSyncUrl,
+  clearAllLocalUberrisCache,
   SUPABASE_SQL_SETUP,
   SUPABASE_SQL_FOOTER_MIGRATION,
   dbSeedProducts,
@@ -40,6 +44,7 @@ interface SupabaseSyncModalProps {
   products: Product[];
   orders: Order[];
   onRefreshData: () => Promise<void>;
+  onForceSync?: () => Promise<void>;
   onShowToast: (title: string, desc?: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -50,14 +55,18 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
   products,
   orders,
   onRefreshData,
+  onForceSync,
   onShowToast,
 }) => {
   const config = getSavedSupabaseConfig();
   const [urlInput, setUrlInput] = useState(config.url || '');
   const [keyInput, setKeyInput] = useState(config.key || '');
+  const [pairingLinkInput, setPairingLinkInput] = useState('');
   const [copiedSql, setCopiedSql] = useState(false);
   const [copiedMigrationSql, setCopiedMigrationSql] = useState(false);
+  const [copiedSyncUrl, setCopiedSyncUrl] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'sql' | 'postimages' | 'settings'>('status');
   
@@ -81,6 +90,68 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
     setCopiedMigrationSql(true);
     onShowToast('Script SQL de Actualización Copiado', 'Pégalo en el SQL Editor de Supabase y dale a Run.', 'success');
     setTimeout(() => setCopiedMigrationSql(false), 3000);
+  };
+
+  const handleCopySyncUrl = () => {
+    const syncUrl = getDeviceSyncUrl();
+    if (!syncUrl) {
+      onShowToast('Sin Configurar', 'Primero conecta este dispositivo a Supabase para generar el enlace.', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(syncUrl);
+    setCopiedSyncUrl(true);
+    onShowToast('Enlace de Celular Copiado', 'Pégalo o envíalo por WhatsApp a tu celular o tablet para conectarlo en 1 clic.', 'success');
+    setTimeout(() => setCopiedSyncUrl(false), 3000);
+  };
+
+  const handleClearCacheAndSync = async () => {
+    setIsClearingCache(true);
+    try {
+      if (onForceSync) {
+        await onForceSync();
+      } else {
+        clearAllLocalUberrisCache();
+        await onRefreshData();
+        onShowToast('Caché Limpiada', 'Se borró el caché local y se cargaron los datos desde Supabase.', 'success');
+      }
+    } catch (e: any) {
+      onShowToast('Aviso', e.message || 'No se pudo limpiar la caché.', 'error');
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
+  const handleApplyPairingLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pairingLinkInput.trim()) return;
+    try {
+      const urlObj = new URL(pairingLinkInput.trim());
+      const qUrl = urlObj.searchParams.get('sb_url') || urlObj.searchParams.get('supabase_url');
+      const qKey = urlObj.searchParams.get('sb_key') || urlObj.searchParams.get('supabase_key');
+      if (qUrl && qKey) {
+        setUrlInput(qUrl);
+        setKeyInput(qKey);
+        saveSupabaseCredentialsLocal(qUrl, qKey);
+        clearAllLocalUberrisCache();
+        onShowToast('¡Enlace Vinculado!', 'Credenciales extraídas y guardadas con éxito.', 'success');
+        onRefreshData();
+        setPairingLinkInput('');
+      } else {
+        onShowToast('Enlace Inválido', 'El enlace no contiene los parámetros sb_url y sb_key necesarios.', 'error');
+      }
+    } catch (err) {
+      onShowToast('Error', 'Verifica haber pegado el enlace completo.', 'error');
+    }
+  };
+
+  const handleDisconnectCredentials = () => {
+    if (confirm('¿Estás seguro de desconectar Supabase de este dispositivo? Se borrarán las credenciales guardadas en este navegador.')) {
+      saveSupabaseCredentialsLocal('', '');
+      clearAllLocalUberrisCache();
+      setUrlInput('');
+      setKeyInput('');
+      onShowToast('Desconectado', 'Se removieron las credenciales locales de Supabase.', 'info');
+    }
   };
 
   const handleSaveCredentials = async (e: React.FormEvent) => {
@@ -266,6 +337,76 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
                       ? 'Todos los pedidos de clientes, cambios de estado en cocina/horno, edición de productos y movimientos de stock se guardan y reflejan en tiempo real en la nube.'
                       : 'La tienda guarda los pedidos localmente. Para habilitar la base de datos centralizada y sincronización multidispositivo, copia el Script SQL en la pestaña "Script SQL" e ingresa tus credenciales.'}
                   </p>
+                </div>
+              </div>
+
+              {/* Device Pairing Link (1-Click mobile sync) */}
+              {connected && (
+                <div
+                  className={`p-4 rounded-xl border space-y-2.5 ${
+                    isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-sm flex items-center gap-1.5 text-emerald-400">
+                        <Share2 className="w-4 h-4" />
+                        <span>Vincular Celulares y Otras Pantallas en 1 Clic</span>
+                      </h4>
+                      <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Envía este enlace por WhatsApp a tu celular o ábrelo en otra computadora: sincronizará la base de datos y limpiará la memoria local en 1 segundo.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleCopySyncUrl}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      {copiedSyncUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedSyncUrl ? '¡Enlace Copiado!' : 'Copiar Enlace para Celular'}</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-1">
+                    <input
+                      type="text"
+                      readOnly
+                      value={getDeviceSyncUrl()}
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                      className={`w-full p-2 text-[11px] font-mono rounded-lg border cursor-pointer select-all ${
+                        isDarkMode ? 'bg-black/30 border-slate-700/50 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                      }`}
+                      title="Haz clic para seleccionar y copiar"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action: Clear Local Cache & Re-sync */}
+              <div
+                className={`p-4 rounded-xl border ${
+                  isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-bold text-sm flex items-center gap-1.5 text-amber-400">
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Limpiar Caché Local y Forzar Descarga Nube</span>
+                    </h4>
+                    <p className={`text-xs mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      Elimina copias locales antiguas o datos residuales de este dispositivo y descarga la información en tiempo real desde Supabase.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleClearCacheAndSync}
+                    disabled={isClearingCache}
+                    className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isClearingCache ? 'animate-spin' : ''}`} />
+                    <span>{isClearingCache ? 'Limpiando...' : 'Limpiar Caché y Recargar'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -499,48 +640,92 @@ export const SupabaseSyncModal: React.FC<SupabaseSyncModalProps> = ({
 
           {/* TAB 4: CREDENTIALS */}
           {activeTab === 'settings' && (
-            <form onSubmit={handleSaveCredentials} className="space-y-4">
-              <div>
-                <label className="font-bold block mb-1">
-                  Supabase Project URL (https://xxxx.supabase.co)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://xyzcompany.supabase.co"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-emerald-500 ${
-                    isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-                  }`}
-                />
+            <div className="space-y-4">
+              {/* Quick Pairing Link Importer */}
+              <div className={`p-4 rounded-xl border space-y-2.5 ${
+                isDarkMode ? 'bg-[#08100c] border-[#1c3326]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Vincular con Enlace de Sincronización (Rápido)</span>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Si recibiste un enlace de sincronización de otra computadora o celular, pégalo aquí para configurar este dispositivo automáticamente:
+                </p>
+                <form onSubmit={handleApplyPairingLink} className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="Pega aquí el enlace: https://...?sb_url=...&sb_key=..."
+                    value={pairingLinkInput}
+                    onChange={(e) => setPairingLinkInput(e.target.value)}
+                    className={`flex-1 p-2.5 rounded-xl border text-xs focus:outline-none focus:border-emerald-500 ${
+                      isDarkMode ? 'bg-black/30 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                    }`}
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 cursor-pointer"
+                  >
+                    Vincular
+                  </button>
+                </form>
               </div>
 
-              <div>
-                <label className="font-bold block mb-1">
-                  Supabase Anon Public Key (eyJhbGciOi...)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  className={`w-full p-2.5 rounded-xl border text-xs font-mono focus:outline-none focus:border-emerald-500 ${
-                    isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-                  }`}
-                />
-              </div>
+              {/* Manual URL & Key Form */}
+              <form onSubmit={handleSaveCredentials} className="space-y-4">
+                <div>
+                  <label className="font-bold block mb-1">
+                    Supabase Project URL (https://xxxx.supabase.co)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://xyzcompany.supabase.co"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    className={`w-full p-2.5 rounded-xl border text-xs focus:outline-none focus:border-emerald-500 ${
+                      isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={isTesting}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
-                >
-                  {isTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
-                  <span>{isTesting ? 'Probando Conexión...' : 'Guardar y Conectar'}</span>
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="font-bold block mb-1">
+                    Supabase Anon Public Key (eyJhbGciOi...)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    value={keyInput}
+                    onChange={(e) => setKeyInput(e.target.value)}
+                    className={`w-full p-2.5 rounded-xl border text-xs font-mono focus:outline-none focus:border-emerald-500 ${
+                      isDarkMode ? 'bg-[#08100c] border-[#1c3326] text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                    }`}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 flex-wrap">
+                  {connected ? (
+                    <button
+                      type="button"
+                      onClick={handleDisconnectCredentials}
+                      className="px-3 py-2 rounded-xl bg-red-950/40 border border-red-500/30 hover:bg-red-900/50 text-red-400 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Desconectar Supabase</span>
+                    </button>
+                  ) : <div />}
+
+                  <button
+                    type="submit"
+                    disabled={isTesting}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {isTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
+                    <span>{isTesting ? 'Probando Conexión...' : 'Guardar y Conectar'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
         </div>

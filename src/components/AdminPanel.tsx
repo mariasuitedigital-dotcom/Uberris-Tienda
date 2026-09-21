@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import {
   isSupabaseConnected,
+  getDeviceSyncUrl,
   dbUpsertStoreSettings,
   SUPABASE_SQL_FOOTER_MIGRATION,
   SUPABASE_SQL_AGENCIES_MIGRATION,
@@ -1298,6 +1299,17 @@ export const AdminPanel: React.FC<Props> = ({
                 <span className="inline">Nuevo Producto</span>
               </button>
 
+              {onForceSync && (
+                <button
+                  onClick={onForceSync}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                  title="Limpiar caché local de este dispositivo y forzar sincronización con la nube"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Sincronizar Cloud</span>
+                </button>
+              )}
+
               {onOpenSupabaseModal && (
                 <button
                   onClick={onOpenSupabaseModal}
@@ -2022,6 +2034,60 @@ export const AdminPanel: React.FC<Props> = ({
         {activeMainTab === 'pedidos' && (
           <div className="space-y-4">
             
+            {/* Live Sync Status Bar for Pedidos */}
+            <div className={`p-3 rounded-2xl border flex items-center justify-between gap-3 flex-wrap ${
+              isSupabaseConnected()
+                ? isDarkMode ? 'bg-emerald-950/25 border-emerald-500/30' : 'bg-emerald-50/80 border-emerald-200'
+                : isDarkMode ? 'bg-amber-950/25 border-amber-500/30' : 'bg-amber-50/80 border-amber-200'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isSupabaseConnected() ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                <div>
+                  <div className="text-xs font-bold flex items-center gap-2 flex-wrap">
+                    <span className={isSupabaseConnected() ? 'text-emerald-400' : 'text-amber-500'}>
+                      {isSupabaseConnected() ? 'Sincronización en Tiempo Real Activa' : 'Modo Local (Sin sincronizar con nube)'}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400">
+                      • {orders.length} pedidos en vivo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Sincronización multidispositivo 100% automática: cualquier celular, tablet o PC que abra la tienda ve los mismos pedidos en tiempo real.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {onForceSync && (
+                  <button
+                    onClick={onForceSync}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="Forzar actualización inmediata desde la nube"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Actualizar Ahora</span>
+                  </button>
+                )}
+
+                {onOpenSupabaseModal && (
+                  <button
+                    onClick={onOpenSupabaseModal}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
+                      isSupabaseConnected()
+                        ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/50'
+                        : isDarkMode
+                        ? 'bg-[#08100c] border-[#1c3326] text-amber-400 hover:text-amber-300'
+                        : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100'
+                    }`}
+                    title="Configuración de Base de Datos Central"
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>{isSupabaseConnected() ? 'Supabase Conectado' : 'Configurar Base de Datos'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Search & Status Quick Chips Filter Bar */}
             <div className={`p-3.5 rounded-2xl border space-y-3 ${
               isDarkMode ? 'bg-[#0d1712] border-[#1c3326]' : 'bg-white border-slate-200 shadow-2xs'

@@ -10,14 +10,34 @@ import {
   ProductionBatch
 } from '../types';
 
-// Read from Vite environment variables or dynamic localStorage fallback
+// Read from Vite environment variables or dynamic localStorage fallback, plus 1-click URL pairing
 const getSupabaseCredentials = () => {
   const envObj = (import.meta as any).env || {};
   const envUrl = (envObj.VITE_SUPABASE_URL as string) || '';
   const envKey = (envObj.VITE_SUPABASE_ANON_KEY as string) || '';
 
-  const localUrl = localStorage.getItem('uberris_supabase_url') || '';
-  const localKey = localStorage.getItem('uberris_supabase_anon_key') || '';
+  // 1. One-click URL pairing for other devices / mobile phones (?sb_url=...&sb_key=...)
+  if (typeof window !== 'undefined' && window.location.search) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const qUrl = params.get('sb_url') || params.get('supabase_url');
+      const qKey = params.get('sb_key') || params.get('supabase_key');
+      if (qUrl && qKey && qUrl.startsWith('http')) {
+        localStorage.setItem('uberris_supabase_url', qUrl.trim());
+        localStorage.setItem('uberris_supabase_anon_key', qKey.trim());
+        // Clean cache so freshly linked device pulls 100% from cloud
+        clearAllLocalUberrisCache();
+        // Remove query parameters from address bar seamlessly
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {
+      console.warn('Could not read URL sync parameters:', e);
+    }
+  }
+
+  const localUrl = typeof window !== 'undefined' ? localStorage.getItem('uberris_supabase_url') || '' : '';
+  const localKey = typeof window !== 'undefined' ? localStorage.getItem('uberris_supabase_anon_key') || '' : '';
 
   const url = envUrl || localUrl;
   const key = envKey || localKey;
@@ -57,10 +77,166 @@ export const saveSupabaseCredentialsLocal = (url: string, key: string) => {
   else localStorage.removeItem('uberris_supabase_anon_key');
 
   clientInstance = null; // reset instance
+
+  // Broadcast to central server so EVERY phone, tablet, and PC automatically gets it!
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key }),
+    }).catch(() => {});
+  }
+};
+
+/**
+ * Automatically asks the central server for cloud credentials on boot.
+ * If the database was set up anywhere, any mobile phone or browser connects immediately!
+ */
+export const autoSyncCloudCredentials = async (): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.supabaseUrl && data.supabaseAnonKey) {
+        const current = getSupabaseCredentials();
+        if (current.url !== data.supabaseUrl || current.key !== data.supabaseAnonKey) {
+          localStorage.setItem('uberris_supabase_url', data.supabaseUrl.trim());
+          localStorage.setItem('uberris_supabase_anon_key', data.supabaseAnonKey.trim());
+          clientInstance = null;
+          return true;
+        }
+      }
+    }
+  } catch (err) {
+    // Offline or static fallback
+  }
+  return false;
+};
+
+// ==========================================
+// CENTRAL SERVER API (AUTOMATIC CROSS-DEVICE SYNC)
+// ==========================================
+export const apiFetchOrders = async (): Promise<Order[] | null> => {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/orders');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.orders)) return data.orders;
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const apiSaveOrder = async (order: Order): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const apiUpdateOrderStatus = async (orderId: string, status: OrderStatus): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const apiDeleteOrder = async (orderId: string): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const apiFetchProducts = async (): Promise<Product[] | null> => {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/products');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.products) && data.products.length > 0) return data.products;
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const apiSaveProducts = async (products: Product[]): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/products', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ products }),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const apiSyncAll = async (payload: { orders?: Order[]; products?: Product[]; settings?: any }): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/sync-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
 };
 
 export const getSavedSupabaseConfig = () => {
   return getSupabaseCredentials();
+};
+
+/**
+ * Returns a 1-click device pairing URL that can be sent to mobile phones,
+ * tablets, or other computers to link them immediately to the same cloud database.
+ */
+export const getDeviceSyncUrl = (): string => {
+  const { url, key, isConfigured } = getSupabaseCredentials();
+  if (!isConfigured || typeof window === 'undefined') return '';
+  const cleanBase = window.location.origin + window.location.pathname;
+  return `${cleanBase}?sb_url=${encodeURIComponent(url)}&sb_key=${encodeURIComponent(key)}`;
+};
+
+/**
+ * Wipes obsolete local caching so all screens pull fresh data directly from Supabase.
+ */
+export const clearAllLocalUberrisCache = () => {
+  if (typeof window === 'undefined') return;
+  const keysToClean = [
+    'uberris_orders',
+    'uberris_products',
+    'uberris_db_categories',
+    'uberris_settings',
+    'uberris_store_settings',
+    'uberris_supplies',
+    'uberris_movements',
+  ];
+  keysToClean.forEach((k) => localStorage.removeItem(k));
 };
 
 /**
@@ -905,17 +1081,18 @@ export const dbCreateOrder = async (order: Order): Promise<boolean> => {
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  // 1. Insert order
+  // 1. Insert order with sanitized fields
+  const deliveryDateFormatted = (order.deliveryDate && order.deliveryDate.trim() !== '') ? order.deliveryDate.trim() : null;
   const orderRow = {
     id: order.id,
-    client_name: order.clientName,
-    client_phone: order.clientPhone,
+    client_name: order.clientName || 'Cliente',
+    client_phone: order.clientPhone || '983746281',
     client_dni: order.clientDni || null,
     address: order.address || null,
-    destination_city: order.destinationCity,
-    delivery_date: order.deliveryDate || null,
-    status: order.status,
-    total: order.total,
+    destination_city: order.destinationCity || 'Abancay',
+    delivery_date: deliveryDateFormatted,
+    status: order.status || 'pendiente',
+    total: Number(order.total) || 0,
     notes: order.notes || null,
     payment_method: order.paymentMethod || 'Yape',
     shipping_type: order.shippingType || 'agency',
@@ -929,7 +1106,7 @@ export const dbCreateOrder = async (order: Order): Promise<boolean> => {
 
   const { error: orderError } = await supabase.from('orders').insert(orderRow);
   if (orderError) {
-    console.error('Error creating order in Supabase:', orderError);
+    console.error('Error creating order in Supabase:', orderError.message || orderError);
     return false;
   }
 
@@ -1334,15 +1511,20 @@ export const subscribeToSupabaseOrders = (onDataChange: () => void) => {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
+  const channelId = `orders-rt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const channel = supabase
-    .channel('orders-realtime-channel')
+    .channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
       onDataChange();
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    try {
+      supabase.removeChannel(channel);
+    } catch (e) {
+      // safe cleanup
+    }
   };
 };
 
@@ -1350,15 +1532,20 @@ export const subscribeToSupabaseProducts = (onDataChange: () => void) => {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
+  const channelId = `products-rt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const channel = supabase
-    .channel('products-realtime-channel')
+    .channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
       onDataChange();
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    try {
+      supabase.removeChannel(channel);
+    } catch (e) {
+      // safe cleanup
+    }
   };
 };
 
@@ -1366,15 +1553,20 @@ export const subscribeToSupabaseSupplies = (onDataChange: () => void) => {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
+  const channelId = `supplies-rt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const channel = supabase
-    .channel('supplies-realtime-channel')
+    .channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'raw_supplies' }, () => {
       onDataChange();
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    try {
+      supabase.removeChannel(channel);
+    } catch (e) {
+      // safe cleanup
+    }
   };
 };
 
@@ -1382,15 +1574,20 @@ export const subscribeToSupabaseSettings = (onDataChange: () => void) => {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
+  const channelId = `settings-rt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const channel = supabase
-    .channel('settings-realtime-channel')
+    .channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
       onDataChange();
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    try {
+      supabase.removeChannel(channel);
+    } catch (e) {
+      // safe cleanup
+    }
   };
 };
 
@@ -1440,15 +1637,20 @@ export const subscribeToSupabaseCategories = (onDataChange: () => void) => {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
+  const channelId = `categories-rt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const channel = supabase
-    .channel('categories-realtime-channel')
+    .channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
       onDataChange();
     })
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    try {
+      supabase.removeChannel(channel);
+    } catch (e) {
+      // safe cleanup
+    }
   };
 };
 

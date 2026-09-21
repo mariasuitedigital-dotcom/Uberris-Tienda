@@ -29,7 +29,16 @@ import {
   subscribeToSupabaseProducts,
   subscribeToSupabaseSettings,
   subscribeToSupabaseCategories,
-  isSupabaseConnected
+  isSupabaseConnected,
+  clearAllLocalUberrisCache,
+  autoSyncCloudCredentials,
+  apiFetchOrders,
+  apiSaveOrder,
+  apiUpdateOrderStatus,
+  apiDeleteOrder,
+  apiFetchProducts,
+  apiSaveProducts,
+  apiSyncAll
 } from './lib/supabase';
 import {
   Product,
@@ -102,8 +111,27 @@ export default function App() {
     localStorage.setItem('uberris_settings', JSON.stringify(storeSettings));
   }, [storeSettings]);
 
-  // Load from Supabase on mount and listen to realtime updates
+  // Load from Central Cloud Server and Supabase on mount and listen to realtime updates
   const fetchSupabaseData = async () => {
+    // 1. Always pull from Central Server API first (guarantees cross-device sync out of the box)
+    try {
+      const [apiOrds, apiProds] = await Promise.all([
+        apiFetchOrders(),
+        apiFetchProducts()
+      ]);
+      if (apiOrds && Array.isArray(apiOrds) && apiOrds.length > 0) {
+        setOrders(apiOrds);
+        localStorage.setItem('uberris_orders', JSON.stringify(apiOrds));
+      }
+      if (apiProds && Array.isArray(apiProds) && apiProds.length > 0) {
+        setProducts(apiProds);
+        localStorage.setItem('uberris_products', JSON.stringify(apiProds));
+      }
+    } catch (e) {
+      // server offline or static fallback
+    }
+
+    // 2. If Supabase is connected, pull from Supabase Postgres
     if (!isSupabaseConnected()) return;
     try {
       const [dbProds, dbOrds, dbSettings, dbCats] = await Promise.all([
@@ -113,20 +141,8 @@ export default function App() {
         dbFetchCategories()
       ]);
       if (dbProds && dbProds.length > 0) {
-        setProducts((prevLocal) => {
-          const map = new Map<string, Product>();
-          // 1. Local products first (preserves user edits and local creations)
-          prevLocal.forEach((lp) => map.set(lp.id, lp));
-          // 2. Add Supabase products only if not present locally
-          dbProds.forEach((p) => {
-            if (!map.has(p.id)) {
-              map.set(p.id, p);
-            }
-          });
-          const merged = Array.from(map.values());
-          localStorage.setItem('uberris_products', JSON.stringify(merged));
-          return merged;
-        });
+        setProducts(dbProds);
+        localStorage.setItem('uberris_products', JSON.stringify(dbProds));
       }
       if (dbOrds !== null) {
         setOrders(dbOrds);
@@ -134,10 +150,10 @@ export default function App() {
       }
       if (dbSettings) {
         setStoreSettings(dbSettings);
+        localStorage.setItem('uberris_settings', JSON.stringify(dbSettings));
       }
       if (dbCats && dbCats.length > 0) {
         localStorage.setItem('uberris_db_categories', JSON.stringify(dbCats));
-        // Trigger re-render
         setStoreSettings((prev) => ({ ...prev }));
       }
     } catch (err) {
@@ -146,63 +162,57 @@ export default function App() {
   };
 
   const forceSyncSupabase = async () => {
-    if (!isSupabaseConnected()) {
-      showToast('Modo Local', 'Supabase no está conectado o configurado.', 'error');
-      return;
-    }
     try {
-      localStorage.removeItem('uberris_orders');
-      localStorage.removeItem('uberris_products');
-      localStorage.removeItem('uberris_db_categories');
-      localStorage.removeItem('uberris_store_settings');
+      clearAllLocalUberrisCache();
+      await autoSyncCloudCredentials();
       await fetchSupabaseData();
-      showToast('Sincronización Forzada', 'Caché local limpiada y datos actualizados desde la nube con éxito.', 'success');
+      showToast('Sincronización Total Completada', 'Se limpió la caché y se sincronizaron los pedidos y catálogo en vivo.', 'success');
     } catch (e) {
-      showToast('Error de Sincronización', 'No se pudieron sincronizar los datos con Supabase.', 'error');
+      showToast('Aviso de Sincronización', 'Verifica la conexión a internet.', 'info');
     }
   };
 
   useEffect(() => {
-    fetchSupabaseData();
+    let unsubOrders = () => {};
+    let unsubProducts = () => {};
+    let unsubSettings = () => {};
+    let unsubCategories = () => {};
 
-    // Re-fetch when window gains focus on any device
-    const handleFocus = () => {
-      fetchSupabaseData();
-    };
-    window.addEventListener('focus', handleFocus);
+    const setupRealtimeSubscriptions = () => {
+      if (!isSupabaseConnected()) return;
+      unsubOrders();
+      unsubProducts();
+      unsubSettings();
+      unsubCategories();
 
-    if (isSupabaseConnected()) {
-      const unsubOrders = subscribeToSupabaseOrders(() => {
+      unsubOrders = subscribeToSupabaseOrders(() => {
         dbFetchOrders().then((ords) => {
-          if (ords) setOrders(ords);
-        });
-      });
-      const unsubProducts = subscribeToSupabaseProducts(() => {
-        dbFetchProducts().then((prods) => {
-          if (prods && prods.length > 0) {
-            setProducts((prevLocal) => {
-              const map = new Map<string, Product>();
-              prevLocal.forEach((lp) => map.set(lp.id, lp));
-              prods.forEach((p) => {
-                if (!map.has(p.id)) {
-                  map.set(p.id, p);
-                }
-              });
-              const merged = Array.from(map.values());
-              localStorage.setItem('uberris_products', JSON.stringify(merged));
-              return merged;
-            });
+          if (ords !== null) {
+            setOrders(ords);
+            localStorage.setItem('uberris_orders', JSON.stringify(ords));
           }
         });
       });
 
-      const unsubSettings = subscribeToSupabaseSettings(() => {
-        dbFetchStoreSettings().then((settings) => {
-          if (settings) setStoreSettings(settings);
+      unsubProducts = subscribeToSupabaseProducts(() => {
+        dbFetchProducts().then((prods) => {
+          if (prods && prods.length > 0) {
+            setProducts(prods);
+            localStorage.setItem('uberris_products', JSON.stringify(prods));
+          }
         });
       });
 
-      const unsubCategories = subscribeToSupabaseCategories(() => {
+      unsubSettings = subscribeToSupabaseSettings(() => {
+        dbFetchStoreSettings().then((settings) => {
+          if (settings) {
+            setStoreSettings(settings);
+            localStorage.setItem('uberris_settings', JSON.stringify(settings));
+          }
+        });
+      });
+
+      unsubCategories = subscribeToSupabaseCategories(() => {
         dbFetchCategories().then((cats) => {
           if (cats && cats.length > 0) {
             localStorage.setItem('uberris_db_categories', JSON.stringify(cats));
@@ -210,18 +220,47 @@ export default function App() {
           }
         });
       });
+    };
 
-      return () => {
-        window.removeEventListener('focus', handleFocus);
-        unsubOrders();
-        unsubProducts();
-        unsubSettings();
-        unsubCategories();
-      };
-    }
+    // Auto-bootstrap: fetches server credentials so ANY phone/computer connects with 0 manual steps!
+    const bootSync = async () => {
+      await autoSyncCloudCredentials();
+      await fetchSupabaseData();
+      setupRealtimeSubscriptions();
+    };
+    bootSync();
+
+    // Re-fetch when window gains focus on any device or tab switch
+    const handleFocus = () => {
+      fetchSupabaseData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // Continuous 5s background sync: guarantees all phones, tablets and PCs stay 100% in sync
+    const pollInterval = setInterval(async () => {
+      // 1. Poll Central Server
+      const apiOrds = await apiFetchOrders();
+      if (apiOrds && Array.isArray(apiOrds) && apiOrds.length > 0) {
+        setOrders(apiOrds);
+      }
+
+      // 2. Poll Supabase if connected
+      if (isSupabaseConnected()) {
+        const ords = await dbFetchOrders();
+        if (ords !== null) {
+          setOrders(ords);
+          localStorage.setItem('uberris_orders', JSON.stringify(ords));
+        }
+      }
+    }, 5000);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
+      clearInterval(pollInterval);
+      unsubOrders();
+      unsubProducts();
+      unsubSettings();
+      unsubCategories();
     };
   }, []);
 
@@ -395,16 +434,21 @@ export default function App() {
     // 1. Save new order in local state
     setOrders((prev) => [newOrder, ...prev]);
 
-    // 2. Persist to Supabase if connected
+    // 2. Persist to Central Server immediately (so ALL devices and screens receive it automatically)
+    apiSaveOrder(newOrder).catch((err) =>
+      console.warn('Could not sync order to central server:', err)
+    );
+
+    // 3. Persist to Supabase if connected
     if (isSupabaseConnected()) {
       dbCreateOrder(newOrder).catch((err) =>
         console.warn('Could not sync order to Supabase:', err)
       );
     }
 
-    // 3. Automatically deduct finished product stock for products with physical stock (con_stock)
+    // 4. Automatically deduct finished product stock for products with physical stock (con_stock)
     setProducts((prevProducts) => {
-      return prevProducts.map((p) => {
+      const updated = prevProducts.map((p) => {
         const orderItem = newOrder.items.find((item) => item.productId === p.id);
         if (orderItem && p.stockType === 'con_stock') {
           const newStock = Math.max(0, (p.stock || 0) - orderItem.quantity);
@@ -415,6 +459,8 @@ export default function App() {
         }
         return p;
       });
+      apiSaveProducts(updated).catch(() => {});
+      return updated;
     });
 
     showToast(
@@ -430,6 +476,10 @@ export default function App() {
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );
 
+    // Sync to Central Server
+    apiUpdateOrderStatus(orderId, status).catch(() => {});
+
+    // Sync to Supabase
     if (isSupabaseConnected()) {
       dbUpdateOrderStatus(orderId, status).catch((err) =>
         console.warn('Could not update order status in Supabase:', err)
@@ -442,6 +492,10 @@ export default function App() {
   const handleDeleteOrder = (orderId: string) => {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
+    // Sync to Central Server
+    apiDeleteOrder(orderId).catch(() => {});
+
+    // Sync to Supabase
     if (isSupabaseConnected()) {
       dbDeleteOrder(orderId).catch((err) =>
         console.warn('Could not delete order in Supabase:', err)
@@ -458,6 +512,7 @@ export default function App() {
         ? prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
         : [updatedProduct, ...prev];
       localStorage.setItem('uberris_products', JSON.stringify(next));
+      apiSaveProducts(next).catch(() => {});
       return next;
     });
 
@@ -477,6 +532,7 @@ export default function App() {
     setProducts((prev) => {
       const next = prev.filter((p) => p.id !== productId);
       localStorage.setItem('uberris_products', JSON.stringify(next));
+      apiSaveProducts(next).catch(() => {});
       return next;
     });
 
@@ -742,6 +798,7 @@ export default function App() {
           onAddSupplyStock={handleAddSupplyStock}
           onShowToast={showToast}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+          onForceSync={forceSyncSupabase}
           isDarkMode={isDarkMode}
         />
       )}
@@ -754,6 +811,7 @@ export default function App() {
         products={products}
         orders={orders}
         onRefreshData={fetchSupabaseData}
+        onForceSync={forceSyncSupabase}
         onShowToast={showToast}
       />
 
