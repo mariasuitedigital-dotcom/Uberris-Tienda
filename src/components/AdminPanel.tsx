@@ -63,7 +63,8 @@ import {
   dataURLToBlob,
   cleanDirectImageUrl,
   dbSaveCategory,
-  dbDeleteCategory
+  dbDeleteCategory,
+  apiSaveCategories
 } from '../lib/supabase';
 import {
   Product,
@@ -259,6 +260,7 @@ export const AdminPanel: React.FC<Props> = ({
     if (onSaveSettings) {
       onSaveSettings(newSettings);
     }
+    apiSaveCategories(updatedCustom).catch(() => {});
 
     if (isSupabaseConnected()) {
       await dbSaveCategory({
@@ -299,6 +301,7 @@ export const AdminPanel: React.FC<Props> = ({
     if (onSaveSettings) {
       onSaveSettings(newSettings);
     }
+    apiSaveCategories(updatedCustom).catch(() => {});
 
     if (isSupabaseConnected()) {
       await dbDeleteCategory(catId);

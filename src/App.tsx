@@ -40,7 +40,9 @@ import {
   apiSaveProducts,
   apiSyncAll,
   apiFetchSyncState,
-  apiSaveSettings
+  apiSaveSettings,
+  apiSaveCategories,
+  dbSeedProducts
 } from './lib/supabase';
 import {
   Product,

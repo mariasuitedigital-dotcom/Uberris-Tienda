@@ -211,7 +211,21 @@ app.put('/api/settings', (req, res) => {
   res.json({ success: true, settings: store.settings, version: store.version });
 });
 
-// 5. Bulk Sync / Initial Seeding endpoint from frontend
+// 5. Categories API
+app.get('/api/categories', (req, res) => {
+  res.json({ categories: store.categories || [] });
+});
+
+app.put('/api/categories', (req, res) => {
+  const { categories } = req.body;
+  if (Array.isArray(categories)) {
+    store.categories = categories;
+    touchStore();
+  }
+  res.json({ success: true, count: (store.categories || []).length, version: store.version });
+});
+
+// 6. Bulk Sync / Initial Seeding endpoint from frontend
 app.post('/api/sync-all', (req, res) => {
   const { orders, products, settings, supplies, categories } = req.body;
   if (Array.isArray(orders) && orders.length > 0) {

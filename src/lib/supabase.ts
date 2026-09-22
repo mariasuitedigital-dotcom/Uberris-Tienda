@@ -231,13 +231,39 @@ export const apiSaveSettings = async (settings: StoreSettings): Promise<boolean>
   }
 };
 
-export const apiSyncAll = async (payload: { orders?: Order[]; products?: Product[]; settings?: any }): Promise<boolean> => {
+export const apiSyncAll = async (payload: { orders?: Order[]; products?: Product[]; settings?: any; categories?: any[] }): Promise<boolean> => {
   if (typeof fetch === 'undefined') return false;
   try {
     const res = await fetch('/api/sync-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const apiFetchCategories = async (): Promise<any[] | null> => {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/categories');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.categories)) return data.categories;
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const apiSaveCategories = async (categories: any[]): Promise<boolean> => {
+  if (typeof fetch === 'undefined') return false;
+  try {
+    const res = await fetch('/api/categories', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categories }),
     });
     return res.ok;
   } catch (e) {
@@ -273,6 +299,7 @@ export const clearAllLocalUberrisCache = () => {
     'uberris_store_settings',
     'uberris_supplies',
     'uberris_movements',
+    'uberris_cart',
   ];
   keysToClean.forEach((k) => localStorage.removeItem(k));
 };
@@ -823,7 +850,40 @@ ALTER TABLE IF EXISTS public.store_settings
   ADD COLUMN IF NOT EXISTS hero_image_1 TEXT,
   ADD COLUMN IF NOT EXISTS hero_image_2 TEXT,
   ADD COLUMN IF NOT EXISTS hero_image_3 TEXT,
-  ADD COLUMN IF NOT EXISTS category_images JSONB DEFAULT '{}'::jsonb;
+  ADD COLUMN IF NOT EXISTS category_images JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS category_names JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS category_descriptions JSONB DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS custom_categories JSONB DEFAULT '[]'::jsonb;
+
+-- MIGRACIÓN / ACTUALIZACIÓN SI LAS TABLAS YA EXISTÍAN
+ALTER TABLE IF EXISTS public.products
+  ADD COLUMN IF NOT EXISTS stock_type TEXT DEFAULT 'a_producir',
+  ADD COLUMN IF NOT EXISTS units_per_package INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS badge TEXT,
+  ADD COLUMN IF NOT EXISTS raw_recipe JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS available BOOLEAN DEFAULT true,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
+
+ALTER TABLE IF EXISTS public.orders
+  ADD COLUMN IF NOT EXISTS client_dni TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_type TEXT DEFAULT 'agency',
+  ADD COLUMN IF NOT EXISTS shipping_agency TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_branch TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+  ADD COLUMN IF NOT EXISTS shipping_notice TEXT,
+  ADD COLUMN IF NOT EXISTS dispatch_day TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
+
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  icon TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
 -- 7. TABLA: PLANIFICACIÓN DE HORNADAS / LOTES DE PRODUCCIÓN
 CREATE TABLE IF NOT EXISTS public.production_batches (
@@ -941,6 +1001,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write batches' AND tablename = 'production_batches') THEN
     CREATE POLICY "Public write batches" ON public.production_batches FOR ALL USING (true);
   END IF;
+
+  -- Categories
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read categories' AND tablename = 'categories') THEN
+    CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public write categories' AND tablename = 'categories') THEN
+    CREATE POLICY "Public write categories" ON public.categories FOR ALL USING (true);
+  END IF;
 END $$;
 
 -- ============================================================================
@@ -951,6 +1019,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.raw_supplies;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.store_settings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.production_batches;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
 `;
 
 /* ==========================================================================
@@ -997,29 +1066,78 @@ export const dbUpsertProduct = async (product: Product): Promise<boolean> => {
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  const payload = {
+  const cleanedImg = cleanDirectImageUrl(product.image);
+
+  // Tier 1: Full modern payload with all columns
+  const fullPayload = {
     id: product.id,
     name: product.name,
-    description: product.description,
-    price: product.price,
-    unit: product.unit,
-    units_per_package: product.unitsPerPackage,
+    description: product.description || '',
+    price: Number(product.price) || 0,
+    unit: product.unit || 'Paquete',
+    units_per_package: product.unitsPerPackage || 1,
     category: product.category,
-    image: cleanDirectImageUrl(product.image),
-    available: product.available,
+    image: cleanedImg,
+    available: product.available !== false,
     stock_type: product.stockType || 'a_producir',
-    stock: product.stock || 0,
+    stock: Number(product.stock) || 0,
     badge: product.badge || null,
     raw_recipe: product.rawRecipe || [],
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from('products').upsert(payload);
-  if (error) {
-    console.error('Error saving product to Supabase:', error);
-    return false;
-  }
-  return true;
+  const resFull = await supabase.from('products').upsert(fullPayload);
+  if (!resFull.error) return true;
+
+  console.warn('Notice: Full product upsert had issues (likely missing optional columns in table). Attempting fallback:', resFull.error.message);
+
+  // Tier 2: Without raw_recipe and badge
+  const fallback1 = {
+    id: product.id,
+    name: product.name,
+    description: product.description || '',
+    price: Number(product.price) || 0,
+    unit: product.unit || 'Paquete',
+    units_per_package: product.unitsPerPackage || 1,
+    category: product.category,
+    image: cleanedImg,
+    available: product.available !== false,
+    stock_type: product.stockType || 'a_producir',
+    stock: Number(product.stock) || 0,
+    updated_at: new Date().toISOString(),
+  };
+  const res1 = await supabase.from('products').upsert(fallback1);
+  if (!res1.error) return true;
+
+  // Tier 3: Core baseline columns
+  const fallback2 = {
+    id: product.id,
+    name: product.name,
+    description: product.description || '',
+    price: Number(product.price) || 0,
+    unit: product.unit || 'Paquete',
+    category: product.category,
+    image: cleanedImg,
+    available: product.available !== false,
+    stock: Number(product.stock) || 0,
+  };
+  const res2 = await supabase.from('products').upsert(fallback2);
+  if (!res2.error) return true;
+
+  // Tier 4: Minimal
+  const fallback3 = {
+    id: product.id,
+    name: product.name,
+    price: Number(product.price) || 0,
+    unit: product.unit || 'Paquete',
+    category: product.category,
+    image: cleanedImg,
+  };
+  const res3 = await supabase.from('products').upsert(fallback3);
+  if (!res3.error) return true;
+
+  console.error('All product upsert attempts to Supabase failed:', res3.error.message);
+  return false;
 };
 
 export const dbDeleteProduct = async (productId: string): Promise<boolean> => {
@@ -1038,28 +1156,50 @@ export const dbSeedProducts = async (products: Product[]): Promise<boolean> => {
   const supabase = getSupabase();
   if (!supabase) return false;
 
-  const rows = products.map((p) => ({
+  const fullRows = products.map((p) => ({
     id: p.id,
     name: p.name,
-    description: p.description,
-    price: p.price,
-    unit: p.unit,
-    units_per_package: p.unitsPerPackage,
+    description: p.description || '',
+    price: Number(p.price) || 0,
+    unit: p.unit || 'Paquete',
+    units_per_package: p.unitsPerPackage || 1,
     category: p.category,
     image: cleanDirectImageUrl(p.image),
-    available: p.available,
+    available: p.available !== false,
     stock_type: p.stockType || 'a_producir',
-    stock: p.stock || 0,
+    stock: Number(p.stock) || 0,
     badge: p.badge || null,
     raw_recipe: p.rawRecipe || [],
+    updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('products').upsert(rows);
-  if (error) {
-    console.error('Error seeding products to Supabase:', error);
-    return false;
+  const resFull = await supabase.from('products').upsert(fullRows);
+  if (!resFull.error) return true;
+
+  console.warn('Full seed products notice, attempting core columns fallback:', resFull.error.message);
+
+  const fallbackRows = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    price: Number(p.price) || 0,
+    unit: p.unit || 'Paquete',
+    category: p.category,
+    image: cleanDirectImageUrl(p.image),
+    available: p.available !== false,
+    stock: Number(p.stock) || 0,
+  }));
+
+  const res1 = await supabase.from('products').upsert(fallbackRows);
+  if (!res1.error) return true;
+
+  // Individual item fallback so single row issue does not block remaining catalog
+  let anySuccess = false;
+  for (const p of products) {
+    const ok = await dbUpsertProduct(p);
+    if (ok) anySuccess = true;
   }
-  return true;
+  return anySuccess;
 };
 
 /* ==========================================================================
@@ -1142,10 +1282,41 @@ export const dbCreateOrder = async (order: Order): Promise<boolean> => {
     created_at: order.createdAt || new Date().toISOString(),
   };
 
-  const { error: orderError } = await supabase.from('orders').insert(orderRow);
+  let { error: orderError } = await supabase.from('orders').insert(orderRow);
   if (orderError) {
-    console.error('Error creating order in Supabase:', orderError.message || orderError);
-    return false;
+    console.warn('Full order insert notice, retrying with standard columns:', orderError.message);
+    const fallbackOrder = {
+      id: order.id,
+      client_name: order.clientName || 'Cliente',
+      client_phone: order.clientPhone || '983746281',
+      address: order.address || null,
+      destination_city: order.destinationCity || 'Abancay',
+      delivery_date: deliveryDateFormatted,
+      status: order.status || 'pendiente',
+      total: Number(order.total) || 0,
+      notes: order.notes || null,
+      payment_method: order.paymentMethod || 'Yape',
+      shipping_type: order.shippingType || 'agency',
+      shipping_agency: order.shippingAgency || null,
+      created_at: order.createdAt || new Date().toISOString(),
+    };
+    const resFallback = await supabase.from('orders').insert(fallbackOrder);
+    if (resFallback.error) {
+      console.warn('Standard order insert failed, retrying minimal order:', resFallback.error.message);
+      const minimalOrder = {
+        id: order.id,
+        client_name: order.clientName || 'Cliente',
+        client_phone: order.clientPhone || '983746281',
+        destination_city: order.destinationCity || 'Abancay',
+        status: order.status || 'pendiente',
+        total: Number(order.total) || 0,
+      };
+      const resMinimal = await supabase.from('orders').insert(minimalOrder);
+      if (resMinimal.error) {
+        console.error('All order insert attempts to Supabase failed:', resMinimal.error.message);
+        return false;
+      }
+    }
   }
 
   // 2. Insert items
