@@ -1,4 +1,4 @@
-export type ProductCategory = 'Panadería' | 'Lácteos' | 'Embutidos' | 'Miel y Dulces' | 'Papa Nativa';
+export type ProductCategory = 'Panadería' | 'Lácteos' | 'Embutidos' | 'Miel y Dulces' | 'Papa Nativa' | (string & {});
 
 export type OrderStatus = 'pendiente' | 'en_produccion' | 'despachado' | 'entregado' | 'cancelado';
 
@@ -19,7 +19,7 @@ export interface Product {
   available: boolean;
   stockType?: 'con_stock' | 'a_producir'; // 'con_stock' = stock limitado / físico; 'a_producir' = bajo demanda / sin límite
   stock: number; // For 'con_stock', units available
-  badge?: 'Más Vendido' | 'Artesanal' | 'Superfood' | 'Nativo' | 'Orgánico' | 'Especialidad';
+  badge?: 'Más Vendido' | 'Artesanal' | 'Superfood' | 'Nativo' | 'Orgánico' | 'Especialidad' | string;
   customGuarantee1?: string;
   customGuarantee2?: string;
   originLocation?: string;

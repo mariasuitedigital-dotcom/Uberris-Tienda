@@ -97,9 +97,19 @@ export default function App() {
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
+  // Helper to purge legacy template demo items that do not exist in Supabase
+  const filterDemoProducts = (list: Product[]): Product[] => {
+    const demoIds = new Set(['PROD-01', 'PROD-02', 'PROD-04', 'PROD-06', 'PROD-07', 'PROD-08', 'PROD-09', 'PROD-10', 'PROD-TEST']);
+    return (list || []).filter(
+      (p) => !demoIds.has(p.id) && p.name !== 'Pan de Trigo Integral & Sal de Maras' && p.name !== 'Queso Paria Artesanal Maduro (Pachachaca)'
+    );
+  };
+
   // 3. Catalog & Search State
   const [products, setProducts] = useState<Product[]>(() => {
-    return safeLocalStorageGet('uberris_products', INITIAL_PRODUCTS);
+    const raw = safeLocalStorageGet<Product[]>('uberris_products', INITIAL_PRODUCTS);
+    const cleaned = filterDemoProducts(raw);
+    return cleaned.length > 0 ? cleaned : INITIAL_PRODUCTS;
   });
 
   useEffect(() => {
@@ -128,8 +138,9 @@ export default function App() {
           lastSyncedVersion.current = cloudState.version;
 
           if (Array.isArray(cloudState.products) && cloudState.products.length > 0) {
-            setProducts(cloudState.products);
-            safeLocalStorageSet('uberris_products', cloudState.products);
+            const cleanedProds = filterDemoProducts(cloudState.products);
+            setProducts(cleanedProds);
+            safeLocalStorageSet('uberris_products', cleanedProds);
           }
           if (Array.isArray(cloudState.orders)) {
             setOrders(cloudState.orders);
@@ -158,8 +169,9 @@ export default function App() {
         dbFetchCategories()
       ]);
       if (dbProds && dbProds.length > 0) {
-        setProducts(dbProds);
-        safeLocalStorageSet('uberris_products', dbProds);
+        const cleanedProds = filterDemoProducts(dbProds);
+        setProducts(cleanedProds);
+        safeLocalStorageSet('uberris_products', cleanedProds);
       }
       if (dbOrds !== null) {
         setOrders(dbOrds);
@@ -208,7 +220,7 @@ export default function App() {
         dbFetchOrders().then((ords) => {
           if (ords !== null) {
             setOrders(ords);
-            localStorage.setItem('uberris_orders', JSON.stringify(ords));
+            safeLocalStorageSet('uberris_orders', ords);
           }
         });
       });
@@ -216,8 +228,9 @@ export default function App() {
       unsubProducts = subscribeToSupabaseProducts(() => {
         dbFetchProducts().then((prods) => {
           if (prods && prods.length > 0) {
-            setProducts(prods);
-            localStorage.setItem('uberris_products', JSON.stringify(prods));
+            const cleanedProds = filterDemoProducts(prods);
+            setProducts(cleanedProds);
+            safeLocalStorageSet('uberris_products', cleanedProds);
           }
         });
       });
@@ -226,7 +239,7 @@ export default function App() {
         dbFetchStoreSettings().then((settings) => {
           if (settings) {
             setStoreSettings(settings);
-            localStorage.setItem('uberris_settings', JSON.stringify(settings));
+            safeLocalStorageSet('uberris_settings', settings);
           }
         });
       });
@@ -234,7 +247,7 @@ export default function App() {
       unsubCategories = subscribeToSupabaseCategories(() => {
         dbFetchCategories().then((cats) => {
           if (cats && cats.length > 0) {
-            localStorage.setItem('uberris_db_categories', JSON.stringify(cats));
+            safeLocalStorageSet('uberris_db_categories', cats);
             setStoreSettings((prev) => ({ ...prev }));
           }
         });

@@ -1,6 +1,6 @@
 {
-  "version": 1792518573581,
-  "updatedAt": "2026-10-20T17:49:33.581Z",
+  "version": 1792522807287,
+  "updatedAt": "2026-10-20T19:00:07.287Z",
   "supabaseConfig": {
     "url": "https://zghyaiernguabifrrxpm.supabase.co",
     "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnaHlhaWVybmd1YWJpZnJyeHBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NDU4MzUsImV4cCI6MjA5NTMyMTgzNX0.JdDsEFRg8i8E17CzYldRloQDQF7mFYBdcSropiA_0Kc"
@@ -305,21 +305,6 @@
       "stockType": "con_stock",
       "stock": 50,
       "badge": "Artesanal",
-      "rawRecipe": []
-    },
-    {
-      "id": "PROD-01",
-      "name": "Pan Chapla Tradicional Apurimeño",
-      "description": "Test description update",
-      "price": 6,
-      "unit": "Paquete x 5 und",
-      "unitsPerPackage": 5,
-      "category": "Panadería",
-      "image": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800",
-      "available": true,
-      "stockType": "a_producir",
-      "stock": 0,
-      "badge": "Más Vendido",
       "rawRecipe": []
     }
   ],
