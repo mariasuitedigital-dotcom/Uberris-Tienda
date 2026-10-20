@@ -10,6 +10,29 @@ import {
   ProductionBatch
 } from '../types';
 
+export const safeLocalStorageSet = (key: string, value: any): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    const str = typeof value === 'string' ? value : JSON.stringify(value);
+    localStorage.setItem(key, str);
+    return true;
+  } catch (e) {
+    console.warn(`[Storage] Failed to save key "${key}" to localStorage:`, e);
+    return false;
+  }
+};
+
+export const safeLocalStorageGet = <T>(key: string, defaultVal: T): T => {
+  try {
+    if (typeof window === 'undefined') return defaultVal;
+    const item = localStorage.getItem(key);
+    if (!item) return defaultVal;
+    return JSON.parse(item);
+  } catch (e) {
+    return defaultVal;
+  }
+};
+
 // Read from Vite environment variables or dynamic localStorage fallback, plus 1-click URL pairing
 const getSupabaseCredentials = () => {
   const envObj = (import.meta as any).env || {};
@@ -23,11 +46,9 @@ const getSupabaseCredentials = () => {
       const qUrl = params.get('sb_url') || params.get('supabase_url');
       const qKey = params.get('sb_key') || params.get('supabase_key');
       if (qUrl && qKey && qUrl.startsWith('http')) {
-        localStorage.setItem('uberris_supabase_url', qUrl.trim());
-        localStorage.setItem('uberris_supabase_anon_key', qKey.trim());
-        // Clean cache so freshly linked device pulls 100% from cloud
+        safeLocalStorageSet('uberris_supabase_url', qUrl.trim());
+        safeLocalStorageSet('uberris_supabase_anon_key', qKey.trim());
         clearAllLocalUberrisCache();
-        // Remove query parameters from address bar seamlessly
         const cleanUrl = window.location.origin + window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
       }
@@ -36,8 +57,14 @@ const getSupabaseCredentials = () => {
     }
   }
 
-  const localUrl = typeof window !== 'undefined' ? localStorage.getItem('uberris_supabase_url') || '' : '';
-  const localKey = typeof window !== 'undefined' ? localStorage.getItem('uberris_supabase_anon_key') || '' : '';
+  let localUrl = '';
+  let localKey = '';
+  try {
+    if (typeof window !== 'undefined') {
+      localUrl = localStorage.getItem('uberris_supabase_url') || '';
+      localKey = localStorage.getItem('uberris_supabase_anon_key') || '';
+    }
+  } catch (e) {}
 
   const url = envUrl || localUrl;
   const key = envKey || localKey;
@@ -179,13 +206,13 @@ export const apiFetchProducts = async (): Promise<Product[] | null> => {
   return null;
 };
 
-export const apiSaveProducts = async (products: Product[]): Promise<boolean> => {
+export const apiSaveProducts = async (products: Product[], singleProduct?: Product): Promise<boolean> => {
   if (typeof fetch === 'undefined') return false;
   try {
     const res = await fetch('/api/products', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ products }),
+      body: JSON.stringify({ products, product: singleProduct }),
     });
     return res.ok;
   } catch (e) {
@@ -268,6 +295,27 @@ export const apiSaveCategories = async (categories: any[]): Promise<boolean> => 
     return res.ok;
   } catch (e) {
     return false;
+  }
+};
+
+export const apiUploadImage = async (
+  imageDataUrl: string,
+  prefix = 'prod'
+): Promise<{ success: boolean; url?: string; error?: string }> => {
+  if (typeof fetch === 'undefined') return { success: false, error: 'No fetch' };
+  try {
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageDataUrl, prefix }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) return { success: true, url: data.url };
+    }
+    return { success: false, error: 'Upload failed' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
   }
 };
 

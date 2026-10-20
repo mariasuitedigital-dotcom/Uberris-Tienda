@@ -64,7 +64,8 @@ import {
   cleanDirectImageUrl,
   dbSaveCategory,
   dbDeleteCategory,
-  apiSaveCategories
+  apiSaveCategories,
+  apiUploadImage
 } from '../lib/supabase';
 import {
   Product,
@@ -748,27 +749,36 @@ export const AdminPanel: React.FC<Props> = ({
     onComplete: (url: string) => void
   ) => {
     compressImageFile(file, maxDim, quality, async (compressedDataUrl) => {
+      // 1. Try Supabase Storage if bucket is configured
       if (isSupabaseConnected()) {
-        onShowToast('Subiendo a Supabase Storage...', 'Subiendo imagen a tu bucket "productos-uberris"...', 'info');
-        const blob = dataURLToBlob(compressedDataUrl);
-        const res = await uploadImageToSupabaseStorage(blob, prefix, 'productos-uberris');
-        if (res.success && res.url) {
-          onComplete(res.url);
-          onShowToast('☁️ ¡Subido a Supabase Storage!', 'Imagen alojada con éxito en el bucket "productos-uberris".', 'success');
-          return;
-        } else {
-          console.warn('Fallback local por error en Supabase Storage:', res.error);
-          onShowToast(
-            'Imagen cargada localmente',
-            `Se optimizó y guardó de forma local. Nota de Supabase Storage: ${res.error || 'Asegúrate de que el bucket sea público'}`,
-            'info'
-          );
+        try {
+          const blob = dataURLToBlob(compressedDataUrl);
+          const res = await uploadImageToSupabaseStorage(blob, prefix, 'productos-uberris');
+          if (res.success && res.url) {
+            onComplete(res.url);
+            onShowToast('☁️ ¡Subido a Supabase Storage!', 'Imagen alojada con éxito en el bucket.', 'success');
+            return;
+          }
+        } catch (e) {
+          // fallback to server upload
         }
       }
-      onComplete(compressedDataUrl);
-      if (!isSupabaseConnected()) {
-        onShowToast('Imagen Cargada', 'Se cargó y optimizó la imagen localmente.', 'success');
+
+      // 2. High-performance server upload: saves file directly to /uploads/ static server directory
+      try {
+        const uploadRes = await apiUploadImage(compressedDataUrl, prefix);
+        if (uploadRes.success && uploadRes.url) {
+          onComplete(uploadRes.url);
+          onShowToast('✓ Imagen Alojada', 'Imagen guardada y optimizada en el servidor en la nube.', 'success');
+          return;
+        }
+      } catch (err) {
+        console.warn('Server upload notice:', err);
       }
+
+      // 3. Last-resort fallback
+      onComplete(compressedDataUrl);
+      onShowToast('Imagen Cargada', 'Se procesó la imagen localmente.', 'info');
     });
   };
 

@@ -42,7 +42,9 @@ import {
   apiFetchSyncState,
   apiSaveSettings,
   apiSaveCategories,
-  dbSeedProducts
+  dbSeedProducts,
+  safeLocalStorageSet,
+  safeLocalStorageGet
 } from './lib/supabase';
 import {
   Product,
@@ -97,22 +99,20 @@ export default function App() {
 
   // 3. Catalog & Search State
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('uberris_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    return safeLocalStorageGet('uberris_products', INITIAL_PRODUCTS);
   });
 
   useEffect(() => {
-    localStorage.setItem('uberris_products', JSON.stringify(products));
+    safeLocalStorageSet('uberris_products', products);
   }, [products]);
 
   // Store Settings State (Company Phone, Social Media TikTok/Facebook/Instagram, Business Hours, Address)
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
-    const saved = localStorage.getItem('uberris_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_STORE_SETTINGS;
+    return safeLocalStorageGet('uberris_settings', DEFAULT_STORE_SETTINGS);
   });
 
   useEffect(() => {
-    localStorage.setItem('uberris_settings', JSON.stringify(storeSettings));
+    safeLocalStorageSet('uberris_settings', storeSettings);
   }, [storeSettings]);
 
   // Version tracker to prevent redundant re-renders
@@ -129,18 +129,18 @@ export default function App() {
 
           if (Array.isArray(cloudState.products) && cloudState.products.length > 0) {
             setProducts(cloudState.products);
-            localStorage.setItem('uberris_products', JSON.stringify(cloudState.products));
+            safeLocalStorageSet('uberris_products', cloudState.products);
           }
           if (Array.isArray(cloudState.orders)) {
             setOrders(cloudState.orders);
-            localStorage.setItem('uberris_orders', JSON.stringify(cloudState.orders));
+            safeLocalStorageSet('uberris_orders', cloudState.orders);
           }
           if (cloudState.settings) {
             setStoreSettings(cloudState.settings);
-            localStorage.setItem('uberris_settings', JSON.stringify(cloudState.settings));
+            safeLocalStorageSet('uberris_settings', cloudState.settings);
           }
           if (Array.isArray(cloudState.categories) && cloudState.categories.length > 0) {
-            localStorage.setItem('uberris_db_categories', JSON.stringify(cloudState.categories));
+            safeLocalStorageSet('uberris_db_categories', cloudState.categories);
           }
         }
       }
@@ -148,7 +148,7 @@ export default function App() {
       // offline fallback
     }
 
-    // 2. If Supabase is connected, pull from Supabase Postgres as well
+    // 2. If Supabase is connected, pull fresh state from Supabase Postgres as well
     if (!isSupabaseConnected()) return;
     try {
       const [dbProds, dbOrds, dbSettings, dbCats] = await Promise.all([
@@ -159,18 +159,18 @@ export default function App() {
       ]);
       if (dbProds && dbProds.length > 0) {
         setProducts(dbProds);
-        localStorage.setItem('uberris_products', JSON.stringify(dbProds));
+        safeLocalStorageSet('uberris_products', dbProds);
       }
       if (dbOrds !== null) {
         setOrders(dbOrds);
-        localStorage.setItem('uberris_orders', JSON.stringify(dbOrds));
+        safeLocalStorageSet('uberris_orders', dbOrds);
       }
       if (dbSettings) {
         setStoreSettings(dbSettings);
-        localStorage.setItem('uberris_settings', JSON.stringify(dbSettings));
+        safeLocalStorageSet('uberris_settings', dbSettings);
       }
       if (dbCats && dbCats.length > 0) {
-        localStorage.setItem('uberris_db_categories', JSON.stringify(dbCats));
+        safeLocalStorageSet('uberris_db_categories', dbCats);
         setStoreSettings((prev) => ({ ...prev }));
       }
     } catch (err) {
@@ -514,35 +514,46 @@ export default function App() {
   };
 
   const handleSaveProduct = async (updatedProduct: Product) => {
+    // 1. Immediately update UI state with clean safe storage
+    let updatedList: Product[] = [];
     setProducts((prev) => {
       const exists = prev.some((p) => p.id === updatedProduct.id);
       const next = exists
         ? prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
         : [updatedProduct, ...prev];
-      localStorage.setItem('uberris_products', JSON.stringify(next));
-      apiSaveProducts(next).catch(() => {});
+      updatedList = next;
+      safeLocalStorageSet('uberris_products', next);
       return next;
     });
 
+    // 2. Dual cloud sync: update central server store & trigger server-side Supabase write
+    apiSaveProducts(updatedList.length > 0 ? updatedList : [updatedProduct], updatedProduct).catch((err) =>
+      console.warn('Central server save notice:', err)
+    );
+
+    // 3. Direct browser Supabase upsert if connected
     if (isSupabaseConnected()) {
       try {
         const success = await dbUpsertProduct(updatedProduct);
         if (!success) {
-          console.warn('Could not save product to Supabase, retained in local storage.');
+          console.warn('Direct Supabase write notice; server backend handles dual-sync.');
         }
       } catch (err) {
-        console.warn('Could not save product to Supabase:', err);
+        console.warn('Supabase direct client upsert notice:', err);
       }
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    let nextList: Product[] = [];
     setProducts((prev) => {
       const next = prev.filter((p) => p.id !== productId);
-      localStorage.setItem('uberris_products', JSON.stringify(next));
-      apiSaveProducts(next).catch(() => {});
+      nextList = next;
+      safeLocalStorageSet('uberris_products', next);
       return next;
     });
+
+    apiSaveProducts(nextList).catch(() => {});
 
     if (isSupabaseConnected()) {
       try {
