@@ -43,6 +43,16 @@ const DEFAULT_CATEGORIES: { id: ProductCategory; defaultName: string; defaultUrl
     defaultName: 'Papa Nativa',
     defaultUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=400',
   },
+  {
+    id: 'Granos Andinos' as any,
+    defaultName: 'Granos Andinos',
+    defaultUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400',
+  },
+  {
+    id: 'Pastas Artesanales' as any,
+    defaultName: 'Pastas Artesanales',
+    defaultUrl: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&q=80&w=400',
+  },
 ];
 
 export const HeaderCategoryBar: React.FC<HeaderCategoryBarProps> = ({

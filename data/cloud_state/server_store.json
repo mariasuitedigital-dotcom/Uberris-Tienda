@@ -1,6 +1,6 @@
 {
-  "version": 1792522807287,
-  "updatedAt": "2026-10-20T19:00:07.287Z",
+  "version": 1792523850984,
+  "updatedAt": "2026-10-20T19:17:28.608Z",
   "supabaseConfig": {
     "url": "https://zghyaiernguabifrrxpm.supabase.co",
     "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnaHlhaWVybmd1YWJpZnJyeHBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NDU4MzUsImV4cCI6MjA5NTMyMTgzNX0.JdDsEFRg8i8E17CzYldRloQDQF7mFYBdcSropiA_0Kc"
@@ -406,21 +406,27 @@
       "Lácteos": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800",
       "Embutidos": "https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800",
       "Miel y Dulces": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800",
-      "Papa Nativa": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800"
+      "Papa Nativa": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800",
+      "Granos Andinos": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
+      "Pastas Artesanales": "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&q=80&w=800"
     },
     "categoryNames": {
       "Panadería": "Panadería Artesanal",
       "Lácteos": "Quesería & Lácteos",
       "Embutidos": "Embutidos & Carnes",
       "Miel y Dulces": "Miel & Dulces",
-      "Papa Nativa": "Papa Nativa"
+      "Papa Nativa": "Papa Nativa",
+      "Granos Andinos": "Granos Andinos",
+      "Pastas Artesanales": "Pastas Artesanales"
     },
     "categoryDescriptions": {
       "Panadería": "Panes tradicionales horneados a la leña",
       "Lácteos": "Quesos frescos, madurados y manjar blanco",
       "Embutidos": "Chorizos, cecina y jamones artesanales",
       "Miel y Dulces": "Miel pura de abeja y mermeladas puras",
-      "Papa Nativa": "Variedades nativas cultivadas en altura"
+      "Papa Nativa": "Variedades nativas cultivadas en altura",
+      "Granos Andinos": "Maíz chullpi, pillpi y granos ancestrales",
+      "Pastas Artesanales": "Fideos de quinua, espinaca y lasaña tradicional"
     },
     "yapeQrImage": "",
     "yapeNumber": "983746281",
@@ -444,5 +450,55 @@
     "showShippingInfo": true,
     "showPaymentBadges": true
   },
-  "categories": []
+  "categories": [
+    {
+      "id": "Panadería",
+      "name": "Panadería Artesanal",
+      "description": "Panes tradicionales horneados a la leña",
+      "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Lácteos",
+      "name": "Quesería & Lácteos",
+      "description": "Quesos frescos, madurados y manjar blanco",
+      "imageUrl": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Embutidos",
+      "name": "Embutidos & Carnes",
+      "description": "Chorizos, cecina y jamones artesanales",
+      "imageUrl": "https://images.unsplash.com/photo-1542826438-bd32f43d626f?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Miel y Dulces",
+      "name": "Miel & Dulces",
+      "description": "Miel pura de abeja y mermeladas puras",
+      "imageUrl": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Papa Nativa",
+      "name": "Papa Nativa",
+      "description": "Variedades nativas cultivadas en altura",
+      "imageUrl": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Granos Andinos",
+      "name": "Granos Andinos",
+      "description": "Maíz chullpi, pillpi y granos ancestrales",
+      "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    },
+    {
+      "id": "Pastas Artesanales",
+      "name": "Pastas Artesanales",
+      "description": "Fideos de quinua, espinaca y lasaña tradicional",
+      "imageUrl": "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?auto=format&fit=crop&q=80&w=800",
+      "active": true
+    }
+  ]
 }

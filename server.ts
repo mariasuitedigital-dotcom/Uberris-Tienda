@@ -172,6 +172,23 @@ const syncFromSupabaseServer = async () => {
       store.settings = { ...DEFAULT_STORE_SETTINGS, ...dbSettings.settings_data };
       touchStore();
     }
+
+    // 3. Sync categories from Supabase
+    const { data: dbCategories, error: catErr } = await sb
+      .from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (!catErr && Array.isArray(dbCategories) && dbCategories.length > 0) {
+      store.categories = dbCategories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description || '',
+        imageUrl: c.image_url || '',
+        active: c.active !== false,
+      }));
+      touchStore();
+    }
   } catch (err) {
     console.warn('[Server Supabase] Periodic sync warning:', err);
   }

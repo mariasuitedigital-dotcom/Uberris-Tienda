@@ -256,6 +256,14 @@ export default function App() {
 
     // Auto-bootstrap: fetches server credentials so ANY phone/computer connects with 0 manual steps!
     const bootSync = async () => {
+      // Purge stale duplicate category cache from legacy sessions
+      try {
+        const cached = localStorage.getItem('uberris_db_categories');
+        if (cached && (cached.includes('"panaderia"') || cached.includes('"lacteos"') || cached.includes('"embutidos"') || cached.includes('"miel"') || cached.includes('"papas"') || cached.includes('"Bebidas"'))) {
+          localStorage.removeItem('uberris_db_categories');
+        }
+      } catch (e) {}
+
       await autoSyncCloudCredentials();
       await syncAllData();
       setupRealtimeSubscriptions();
